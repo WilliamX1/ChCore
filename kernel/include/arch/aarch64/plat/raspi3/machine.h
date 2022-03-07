@@ -4,7 +4,6 @@
 
 /* raspi3 config */
 #define PLAT_CPU_NUM 4
-#define PLAT_RASPI3
 
 #define BCM2835_REG(x) (*(volatile uint32_t *)(x))
 #define BCM2835_BIT(n) (1 << (n))

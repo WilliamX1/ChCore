@@ -120,6 +120,7 @@ clean() {
     _echo_info "Cleaning..."
 
     if [ -f $cmake_cache_file ]; then
+        _config_default # config with default values first, to avoid failure of cleaning
         cmake --build $cmake_build_dir --target clean-all
         rm -rf $cmake_build_dir
         _echo_succ "Succeeded to clean all targets"

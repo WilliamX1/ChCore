@@ -2,8 +2,9 @@
 
 #include <common/macro.h>
 
-#if 0
-/* SPSR_EI1 will hold the saved process state when an exception is taken to EL1 */
+/*
+ * SPSR_EI1 will hold the saved process state when an exception is taken to EL1
+ */
 #define SPSR_EL1_N      BIT(31) /* N condition flag */
 #define SPSR_EL1_Z      BIT(30) /* Z condition flag */
 #define SPSR_EL1_C      BIT(29) /* C condition flag */
@@ -18,12 +19,6 @@
 #define SPSR_EL1_IRQ    BIT(7) /* IRQ mask */
 #define SPSR_EL1_FIQ    BIT(6) /* FIQ mask */
 #define SPSR_EL1_M      BIT(4) /* Exception taken from AArch64 */
-#endif
-
-#define SPSR_EL1_DEBUG  BIT(9) /* Debug mask */
-#define SPSR_EL1_SERROR BIT(8) /* SERROR mask */
-#define SPSR_EL1_IRQ    BIT(7) /* IRQ mask */
-#define SPSR_EL1_FIQ    BIT(6) /* FIQ mask */
 
 /*
  * In AArch64, CTR_EL0 provides informantion about the architecture of the
@@ -52,7 +47,6 @@
 #define SPSR_EL1_KERNEL SPSR_EL1_EL1h
 #define SPSR_EL1_USER   SPSR_EL1_EL0t
 
-#if 0
 #define SCTLR_EL1_EnIA                                         \
         BIT(31) /* Controls enabling of pointer authentication \
                  */
@@ -116,14 +110,6 @@
                   Alignment faults at EL1 and EL0 under certain conditions */
 #define SCTLR_EL1_CP15BEN \
         BIT(5) /* System instruction memory barrier enable (AArch32) */
-#endif
-
-#define SCTLR_EL1_I                                                         \
-        BIT(12) /* Instruction access Cacheability control, for accesses at \
-                   EL0 and EL1 */
-#define SCTLR_EL1_nAA                                                 \
-        BIT(6) /* Non-aligned access. This bit controls generation of \
-                  Alignment faults at EL1 and EL0 under certain conditions */
 #define SCTLR_EL1_SA0 BIT(4) /* SP Alignment check enable for EL0 */
 #define SCTLR_EL1_SA  BIT(3) /* SP Alignment check */
 #define SCTLR_EL1_C   BIT(2) /* Cacheability control for data accesses */

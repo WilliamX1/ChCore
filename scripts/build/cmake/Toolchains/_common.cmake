@@ -19,7 +19,7 @@ unset(_target_arch)
 
 # Set optimization level
 add_compile_options("$<$<CONFIG:Debug>:-O0;-g>")
-add_compile_options("$<$<CONFIG:Release>:-O3>")
+add_compile_options("$<$<CONFIG:Release>:-Og;-g>")
 
 # Convert config items to compile definition
 get_cmake_property(_cache_var_names CACHE_VARIABLES)

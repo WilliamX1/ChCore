@@ -1,4 +1,4 @@
-LAB := 1
+LAB := 2
 
 V := @
 PROJECT_DIR := .
@@ -43,7 +43,6 @@ gdb:
 .PHONY: grade
 
 grade:
-	$(V)$(CHBUILD) distclean
-	$(V)$(CHBUILD) defconfig
-	$(V)$(CHBUILD) build
+	$(V)test -f $(PROJECT_DIR)/.config && cp $(PROJECT_DIR)/.config $(PROJECT_DIR)/.config.bak
 	$(V)$(PROJECT_DIR)/scripts/grade/lab$(LAB).sh
+	$(V)test -f $(PROJECT_DIR)/.config.bak && mv $(PROJECT_DIR)/.config.bak $(PROJECT_DIR)/.config

@@ -61,3 +61,4 @@ target_include_directories(
 add_subdirectory(arch/${CHCORE_ARCH})
 add_subdirectory(arch/${CHCORE_ARCH}/plat/${CHCORE_PLAT})
 add_subdirectory(lib)
+add_subdirectory(mm)

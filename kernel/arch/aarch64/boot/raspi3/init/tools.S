@@ -181,16 +181,16 @@ END_FUNC(invalidate_cache_all)
 .extern boot_ttbr1_l0
 
 
-/* Device-nGnRE memory */
-#define MMU_MAIR_ATTR1		(0x04 << (8 * 1))
-
 /* Normal Memory, Outer Write-back non-transient Read/Write allocate,
  * Inner Write-back non-transient Read/Write allocate
  */
-#define MMU_MAIR_ATTR2		(0xff << (8 * 2))
+#define MMU_MAIR_ATTR0		(0xff << (8 * 0))
+
+/* Device-nGnRE memory */
+#define MMU_MAIR_ATTR1		(0x04 << (8 * 1))
 
 /* Normal Memory, Inner/Outer uncached, Write Combined */
-#define MMU_MAIR_ATTR3		(0x44 << (8 * 3))
+#define MMU_MAIR_ATTR2		(0x44 << (8 * 2))
 
 
 /*
@@ -228,7 +228,7 @@ BEGIN_FUNC(el1_mmu_activate)
 	dsb     sy
 
 	/* Initialize Memory Attribute Indirection Register */
-	ldr 	x8, =MMU_MAIR_ATTR1 | MMU_MAIR_ATTR2 | MMU_MAIR_ATTR3
+	ldr 	x8, =MMU_MAIR_ATTR0 | MMU_MAIR_ATTR1 | MMU_MAIR_ATTR2
 	msr     mair_el1, x8
 
 	/* Initialize TCR_EL1 */

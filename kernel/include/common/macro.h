@@ -1,9 +1,7 @@
 #pragma once
 
-#ifdef CHCORE
 #ifndef __ASM__
 #include <common/kprint.h>
-#endif
 #endif
 
 #define ALIGN(n) __attribute__((__aligned__(n)))
