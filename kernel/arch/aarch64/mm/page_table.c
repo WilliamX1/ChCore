@@ -323,7 +323,7 @@ void lab2_test_page_table(void)
                         pgtbl, 0x100000000, 0x100000000, len, flags);
                 lab_assert(ret == 0);
                 used_mem =
-                        get_free_mem_size_from_buddy(&global_mem[0]) - free_mem;
+                        free_mem - get_free_mem_size_from_buddy(&global_mem[0]);
 
                 for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
                      va += 5 * PAGE_SIZE + 0x100) {
