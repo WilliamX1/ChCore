@@ -201,12 +201,12 @@ void lab2_test_buddy(void)
                 BUG_ON(page == NULL);
                 lab_assert(page->order == 0 && page->allocated);
                 expect_free_mem -= PAGE_SIZE;
-                ok = ok
-                     && get_free_mem_size_from_buddy(pool) == expect_free_mem;
+                lab_assert(get_free_mem_size_from_buddy(pool)
+                           == expect_free_mem);
                 buddy_free_pages(pool, page);
                 expect_free_mem += PAGE_SIZE;
-                ok = ok
-                     && get_free_mem_size_from_buddy(pool) == expect_free_mem;
+                lab_assert(get_free_mem_size_from_buddy(pool)
+                           == expect_free_mem);
                 lab_check(ok, "Allocate & free order 0");
         }
         {
@@ -218,28 +218,24 @@ void lab2_test_buddy(void)
                         BUG_ON(page == NULL);
                         lab_assert(page->order == i && page->allocated);
                         expect_free_mem -= (1 << i) * PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                         buddy_free_pages(pool, page);
                         expect_free_mem += (1 << i) * PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                 }
                 for (int i = BUDDY_MAX_ORDER - 1; i >= 0; i--) {
                         page = buddy_get_pages(pool, i);
                         BUG_ON(page == NULL);
                         lab_assert(page->order == i && page->allocated);
                         expect_free_mem -= (1 << i) * PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                         buddy_free_pages(pool, page);
                         expect_free_mem += (1 << i) * PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                 }
                 lab_check(ok, "Allocate & free each order");
         }
@@ -252,16 +248,14 @@ void lab2_test_buddy(void)
                         BUG_ON(pages[i] == NULL);
                         lab_assert(pages[i]->order == i);
                         expect_free_mem -= (1 << i) * PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                 }
                 for (int i = 0; i < BUDDY_MAX_ORDER; i++) {
                         buddy_free_pages(pool, pages[i]);
                         expect_free_mem += (1 << i) * PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                 }
                 lab_check(ok, "Allocate & free all orders");
         }
@@ -274,9 +268,8 @@ void lab2_test_buddy(void)
                         BUG_ON(page == NULL);
                         lab_assert(page->order == 0);
                         expect_free_mem -= PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                 }
                 lab_assert(get_free_mem_size_from_buddy(pool) == 0);
                 lab_assert(buddy_get_pages(pool, 0) == NULL);
@@ -285,12 +278,11 @@ void lab2_test_buddy(void)
                         lab_assert(page->allocated);
                         buddy_free_pages(pool, page);
                         expect_free_mem += PAGE_SIZE;
-                        ok = ok
-                             && get_free_mem_size_from_buddy(pool)
-                                        == expect_free_mem;
+                        lab_assert(get_free_mem_size_from_buddy(pool)
+                                   == expect_free_mem);
                 }
-                ok = ok
-                     && pool->pool_phys_page_num * PAGE_SIZE == expect_free_mem;
+                lab_assert(pool->pool_phys_page_num * PAGE_SIZE
+                           == expect_free_mem);
                 lab_check(ok, "Allocate & free all memory");
         }
         printk("[TEST] Buddy tests finished\n");

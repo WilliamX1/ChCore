@@ -25,8 +25,8 @@ set scores {
 
     {"Map & unmap one page"               0 9}
     {"Map & unmap multiple pages"         0 9}
-    {"Map & unmap with huge page support" 0 9}
     {"Map & unmap huge range"             0 9}
+    {"Map & unmap with huge page support" 0 9}
 }
 
 proc grade {} {
@@ -88,11 +88,11 @@ expect {
         lset scores {9 1} [lindex $scores {9 2}]
         exp_continue -continue_timer
     }
-    "Map & unmap with huge page support: OK" {
+    "Map & unmap huge range: OK" {
         lset scores {10 1} [lindex $scores {10 2}]
         exp_continue -continue_timer
     }
-    "Map & unmap huge range: OK" {
+    "Map & unmap with huge page support: OK" {
         lset scores {11 1} [lindex $scores {11 2}]
         exp_continue -continue_timer
     }

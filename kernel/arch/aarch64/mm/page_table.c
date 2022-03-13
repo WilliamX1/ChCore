@@ -236,6 +236,21 @@ int unmap_range_in_pgtbl(void *pgtbl, vaddr_t va, size_t len)
         /* LAB 2 TODO 3 END */
 }
 
+int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
+                            vmr_prop_t flags)
+{
+        /* LAB 2 TODO 4 BEGIN */
+
+        /* LAB 2 TODO 4 END */
+}
+
+int unmap_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, size_t len)
+{
+        /* LAB 2 TODO 4 BEGIN */
+
+        /* LAB 2 TODO 4 END */
+}
+
 #ifdef CHCORE_KERNEL_TEST
 #include <mm/buddy.h>
 #include <lab.h>
@@ -316,22 +331,26 @@ void lab2_test_page_table(void)
                 int ret;
                 /* 1GB + 4MB + 40KB */
                 size_t len = (1 << 30) + (4 << 20) + 10 * PAGE_SIZE;
-                size_t free_mem, used_mem;
 
-                free_mem = get_free_mem_size_from_buddy(&global_mem[0]);
                 ret = map_range_in_pgtbl(
                         pgtbl, 0x100000000, 0x100000000, len, flags);
                 lab_assert(ret == 0);
-                used_mem =
-                        free_mem - get_free_mem_size_from_buddy(&global_mem[0]);
+                ret = map_range_in_pgtbl(pgtbl,
+                                         0x100000000 + len,
+                                         0x100000000 + len,
+                                         len,
+                                         flags);
+                lab_assert(ret == 0);
 
-                for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
+                for (vaddr_t va = 0x100000000; va < 0x100000000 + len * 2;
                      va += 5 * PAGE_SIZE + 0x100) {
                         ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
                         lab_assert(ret == 0 && pa == va);
                 }
 
                 ret = unmap_range_in_pgtbl(pgtbl, 0x100000000, len);
+                lab_assert(ret == 0);
+                ret = unmap_range_in_pgtbl(pgtbl, 0x100000000 + len, len);
                 lab_assert(ret == 0);
 
                 for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
@@ -340,9 +359,45 @@ void lab2_test_page_table(void)
                         lab_assert(ret == -ENOMAPPING);
                 }
 
-                lab_check(used_mem < PAGE_SIZE * 8,
-                          "Map & unmap with huge page support");
+                free_page_table(pgtbl);
                 lab_check(ok, "Map & unmap huge range");
+        }
+        {
+                bool ok = true;
+                void *pgtbl = get_pages(0);
+                memset(pgtbl, 0, PAGE_SIZE);
+                paddr_t pa;
+                pte_t *pte;
+                int ret;
+                /* 1GB + 4MB + 40KB */
+                size_t len = (1 << 30) + (4 << 20) + 10 * PAGE_SIZE;
+                size_t free_mem, used_mem;
+
+                free_mem = get_free_mem_size_from_buddy(&global_mem[0]);
+                ret = map_range_in_pgtbl_huge(
+                        pgtbl, 0x100000000, 0x100000000, len, flags);
+                lab_assert(ret == 0);
+                used_mem =
+                        free_mem - get_free_mem_size_from_buddy(&global_mem[0]);
+                lab_assert(used_mem < PAGE_SIZE * 8);
+
+                for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
+                     va += 5 * PAGE_SIZE + 0x100) {
+                        ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
+                        lab_assert(ret == 0 && pa == va);
+                }
+
+                ret = unmap_range_in_pgtbl_huge(pgtbl, 0x100000000, len);
+                lab_assert(ret == 0);
+
+                for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
+                     va += 5 * PAGE_SIZE + 0x100) {
+                        ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
+                        lab_assert(ret == -ENOMAPPING);
+                }
+
+                free_page_table(pgtbl);
+                lab_check(ok, "Map & unmap with huge page support");
         }
         printk("[TEST] Page table tests finished\n");
 }
