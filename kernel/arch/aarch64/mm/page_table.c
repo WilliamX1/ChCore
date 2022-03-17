@@ -18,7 +18,6 @@ void set_page_table(paddr_t pgtbl)
 }
 
 #define USER_PTE 0
-#define KERNEL_PTE 1
 /*
  * the 3rd arg means the kind of PTE.
  */
@@ -217,6 +216,23 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
                 ret = get_next_ptp(cur_ptp, level, va, &next_ptp, &next_pte, false);
                 if (ret < 0)
                         return ret;
+                if (ret == BLOCK_PTP) {
+                        *entry = next_pte;
+                        switch (level) {
+                                case 1:
+                                        *pa = virt_to_phys((vaddr_t) next_ptp) + GET_VA_OFFSET_L1(va);
+                                        break;
+                                case 2:
+                                        *pa = virt_to_phys((vaddr_t) next_ptp) + GET_VA_OFFSET_L2(va);
+                                        break;
+                                case 3:
+                                        *pa = virt_to_phys((vaddr_t) next_ptp) + GET_VA_OFFSET_L3(va);
+                                        break;
+                                default:
+                                        break;
+                        };
+                        return 0;
+                }
                 cur_ptp = next_ptp;
         };
 
@@ -307,12 +323,53 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                             vmr_prop_t flags)
 {
         /* LAB 2 TODO 4 BEGIN */
-        int ret;
-        for (int i = 0; i < 512; i++) {
-                ret = map_range_in_pgtbl(pgtbl, va, pa, len, flags);
+        ptp_t* ptp_0 = (ptp_t *) pgtbl, *ptp_1, *ptp_2, *ptp_3;
+        pte_t* pte_0, *pte_1, *pte_2, *pte_3;
+        int ret = 0;
+        const vaddr_t end_va = va + len;
+
+        u64 page_size_1G = PAGE_SIZE * L1_PER_ENTRY_PAGES;
+        u64 page_shift_1G = PAGE_SHIFT + PAGE_ORDER + PAGE_ORDER;
+
+        while (va + page_size_1G < end_va) {
+                ret = get_next_ptp(ptp_0, 0, va, &ptp_1, &pte_0, true);
                 if (ret < 0)
                         return ret;
+
+                pte_1 = &(ptp_1->ent[GET_L1_INDEX(va)]);
+                pte_1->l1_block.is_valid = 1;
+                pte_1->l1_block.is_table = 0;
+                pte_1->l1_block.pfn = pa >> page_shift_1G;
+                set_pte_flags(pte_1, flags, USER_PTE);
+
+                va += page_size_1G;
+                pa += page_size_1G;
+                len -= page_size_1G;
         };
+        
+        u64 page_size_2M = L2_PER_ENTRY_PAGES * PAGE_SIZE;
+        u64 page_shift_2M = PAGE_SHIFT + PAGE_ORDER;
+
+        while (va + page_size_2M < end_va) {
+                ret = get_next_ptp(ptp_0, 0, va, &ptp_1, &pte_0, true);
+                if (ret < 0)
+                        return ret;
+                ret = get_next_ptp(ptp_1, 1, va, &ptp_2, &pte_1, true);
+                if (ret < 0)
+                        return ret;
+                
+                pte_2 = &(ptp_2->ent[GET_L2_INDEX(va)]);
+                pte_2->l2_block.is_valid = 1;
+                pte_2->l2_block.is_table = 0;
+                pte_2->l2_block.pfn = pa >> page_shift_2M;
+                set_pte_flags(pte_2, flags, USER_PTE);
+
+                va += page_size_2M;
+                pa += page_size_2M;
+                len -= page_size_2M;
+        };
+
+        map_range_in_pgtbl(pgtbl, va, pa, len, flags);
 
         return 0;
 
@@ -322,12 +379,45 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
 int unmap_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, size_t len)
 {
         /* LAB 2 TODO 4 BEGIN */
-        int ret;
-        for (int i = 0; i < 512; i++) {
-                ret = unmap_range_in_pgtbl(pgtbl, va, len);
+        ptp_t* ptp_0 = (ptp_t *) pgtbl, *ptp_1, *ptp_2, *ptp_3;
+        pte_t* pte_0, *pte_1, *pte_2, *pte_3;
+        int ret = 0;
+        const vaddr_t end_va = va + len;
+        
+        u64 page_size_1G = PAGE_SIZE * L1_PER_ENTRY_PAGES;
+        u64 page_shift_1G = PAGE_SHIFT + PAGE_ORDER + PAGE_ORDER;
+
+        while (va + page_size_1G < end_va) {
+                ret = get_next_ptp(ptp_0, 0, va, &ptp_1, &pte_0, true);
                 if (ret < 0)
                         return ret;
+                
+                pte_1 = &(ptp_1->ent[GET_L1_INDEX(va)]);
+                pte_1->l1_block.is_valid = 0;
+
+                va += page_size_1G;
+                len -= page_size_1G;
         };
+
+        u64 page_size_2M = L2_PER_ENTRY_PAGES * PAGE_SIZE;
+        u64 page_shift_2M = PAGE_SHIFT + PAGE_ORDER;
+
+        while (va + page_size_2M < end_va) {
+                ret = get_next_ptp(ptp_0, 0, va, &ptp_1, &pte_0, true);
+                if (ret < 0)
+                        return ret;
+                ret = get_next_ptp(ptp_1, 1, va, &ptp_2, &pte_1, true);
+                if (ret < 0)
+                        return ret;
+                
+                pte_2 = &(ptp_2->ent[GET_L2_INDEX(va)]);
+                pte_2->l2_block.is_valid = 0;
+
+                va += page_size_2M;
+                len -= page_size_2M;
+        };
+
+        unmap_range_in_pgtbl(pgtbl, va, len);
 
         return 0;
         
