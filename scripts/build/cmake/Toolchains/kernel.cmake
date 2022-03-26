@@ -6,6 +6,12 @@ else()
     message(STATUS "CHCORE_PROJECT_DIR: ${CHCORE_PROJECT_DIR}")
 endif()
 
+if(NOT DEFINED CHCORE_USER_INSTALL_DIR)
+    message(FATAL_ERROR "CHCORE_USER_INSTALL_DIR is not defined")
+else()
+    message(STATUS "CHCORE_USER_INSTALL_DIR: ${CHCORE_USER_INSTALL_DIR}")
+endif()
+
 # Set toolchain executables
 set(CMAKE_ASM_COMPILER "${CHCORE_CROSS_COMPILE}gcc")
 set(CMAKE_C_COMPILER "${CHCORE_CROSS_COMPILE}gcc")

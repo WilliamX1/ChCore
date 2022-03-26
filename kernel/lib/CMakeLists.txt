@@ -1,1 +1,1 @@
-target_sources(${kernel_target} PRIVATE printk.c)
+target_sources(${kernel_target} PRIVATE printk.c elf.c radix.c)
