@@ -97,6 +97,34 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         p_vaddr = elf->p_headers[i].p_vaddr;
                         /* LAB 3 TODO BEGIN */
 
+                        u64 vaddr_start = ROUND_DOWN(p_vaddr, PAGE_SIZE);
+                        u64 vaddr_end = ROUND_UP(p_vaddr + seg_sz, PAGE_SIZE);
+                        seg_map_sz = vaddr_end - vaddr_start;
+
+                        pmo = obj_alloc(TYPE_PMO, sizeof(*pmo));
+                        if (!pmo) {
+                                r = -ENOMEM;
+                                goto out_free_cap;
+                        }
+                        pmo_init(pmo, PMO_DATA, seg_map_sz, 0);
+                        pmo_cap[i] = cap_alloc(cap_group, pmo, 0);
+                        if (pmo_cap[i] < 0) {
+                                r = pmo_cap[i];
+                                goto out_free_obj;
+                        };
+
+                        u64 start_offset = p_vaddr - vaddr_start;
+                        char* pmo_start = (char *) phys_to_virt(pmo->start) + start_offset;
+                        char* seg_start = bin + elf->p_headers[i].p_offset;
+                        u64 copy_size = elf->p_headers[i].p_filesz;
+                        for (u64 i = 0; i < copy_size; i++) {
+                                pmo_start[i] = seg_start[i];
+                        };
+
+                        flags = PFLAGS2VMRFLAGS(elf->p_headers[i].p_flags);
+
+                        ret = vmspace_map_range(vmspace, ROUND_DOWN(p_vaddr, PAGE_SIZE), seg_map_sz, flags, pmo);
+
                         /* LAB 3 TODO END */
                         BUG_ON(ret != 0);
                 }
@@ -114,6 +142,8 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
 
         /* PC: the entry point */
         return elf->header.e_entry;
+out_free_obj:
+        obj_free(pmo);
 out_free_cap:
         for (--i; i >= 0; i--) {
                 if (pmo_cap[i] != 0)

@@ -332,7 +332,7 @@ struct cap_group *create_root_cap_group(char *name, size_t name_len)
         /* fixed PCID 1 for root process, PCID 0 is not used. */
         /* LAB 3 TODO BEGIN */
         vmspace_init(vmspace);
-        slot_id = cap_alloc(cap_group, vmspace, 1);
+        slot_id = cap_alloc(cap_group, vmspace, 0);
         /* LAB 3 TODO END */
         BUG_ON(slot_id != VMSPACE_OBJ_ID);
         /* Set the cap_group_name (process_name) for easing debugging */

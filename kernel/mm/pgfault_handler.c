@@ -56,12 +56,37 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                 fault_addr = ROUND_DOWN(fault_addr, PAGE_SIZE);
                 /* LAB 3 TODO BEGIN */
 
+                // void* page = get_pages(0);
+                // if (page == NULL) {
+                //         kdebug("Couldn't get a new page\n");
+                //         return -ENOMAPPING;
+                // };
+                // pa = (paddr_t) virt_to_phys(page);
+                // offset = ROUND_DOWN(fault_addr, PAGE_SIZE);
+                // ret = map_range_in_pgtbl(vmspace->pgtbl, offset, pa, PAGE_SIZE, vmr->perm);
+                // if (ret < 0) {
+                //         free_pages(page);
+                //         kdebug("Map range in pgtbl fault\n");
+                //         return -ENOMAPPING;
+                // };
+
+                pa = get_page_from_pmo(pmo, offset);
+
                 /* LAB 3 TODO END */
                 if (pa == 0) {
                         /* Not committed before. Then, allocate the physical
                          * page. */
                         /* LAB 3 TODO BEGIN */
-
+                        void* page = get_pages(0);
+                        if (page == NULL) {
+                                return -ENOMAPPING;
+                        };
+                        pa = (paddr_t) virt_to_phys(page);
+                        offset = ROUND_DOWN(fault_addr, PAGE_SIZE);
+                        ret = map_range_in_pgtbl(vmspace->pgtbl, offset, pa, PAGE_SIZE, vmr->perm);
+                        if (ret < 0) {
+                                return -ENOMAPPING;
+                        };
                         /* LAB 3 TODO END */
 #ifdef CHCORE_LAB3_TEST
                         printk("Test: Test: Successfully map\n");
@@ -89,7 +114,11 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                          * Repeated mapping operations are harmless.
                          */
                         /* LAB 3 TODO BEGIN */
-
+                        offset = ROUND_DOWN(fault_addr, PAGE_SIZE);
+                        ret = map_range_in_pgtbl(vmspace->pgtbl, offset, pa, PAGE_SIZE, vmr->perm);
+                        if (ret < 0) {
+                                return -ENOMAPPING;
+                        };
                         /* LAB 3 TODO END */
 #ifdef CHCORE_LAB3_TEST
                         printk("Test: Test: Successfully map for pa not 0\n");
