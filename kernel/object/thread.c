@@ -418,6 +418,14 @@ void sys_thread_exit(void)
 #endif
         /* LAB 3 TODO BEGIN */
 
+        int cpuid = smp_get_cpu_id();
+        struct thread* target = current_threads[cpuid];
+
+        target->thread_ctx->state = TS_EXIT;
+        obj_free(target);
+
+        current_threads[cpuid] = NULL;
+        
         /* LAB 3 TODO END */
         printk("Lab 3 hang.\n");
         while (1) {

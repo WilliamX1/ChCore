@@ -8,12 +8,40 @@
 extern "C" {
 #endif
 
+static inline u64 syscall(u64 sys_no, u64 arg0, u64 arg1, u64 arg2, u64 arg3, u64 arg4,
+	    u64 arg5, u64 arg6, u64 arg7, u64 arg8)
+{
+
+	u64 ret = 0;
+	/*
+	 * Lab3: Your code here
+	 * Use inline assembly to store arguments into x0 to x7, store syscall number to x8,
+	 * And finally use svc to execute the system call. After syscall returned, don't forget
+	 * to move return value from x0 to the ret variable of this function
+	 */
+	asm volatile ("mov x8, %1\n"
+			"mov x0, %2\n"
+			"mov x1, %3\n"
+			"mov x2, %4\n"
+			"mov x3, %5\n"
+			"mov x4, %6\n"
+			"mov x5, %7\n"
+			"mov x6, %8\n"
+			"svc #0\n"
+			"mov %0, x0\n"
+			:"=r" (ret)
+			:"r"(sys_no), "r"(arg0), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5),"r"(arg6), "r"(arg7), "r"(arg8)
+			:"x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8"
+	);
+	return ret;
+}
+
 /* Character */
 
 static inline void __chcore_sys_putc(char ch)
 {
         /* LAB 3 TODO BEGIN */
-
+        syscall(__CHCORE_SYS_putc, ch, 0, 0, 0, 0, 0, 0, 0, 0);
         /* LAB 3 TODO END */
 }
 
@@ -21,7 +49,7 @@ static inline u32 __chcore_sys_getc(void)
 {
         u32 ret = -1;
         /* LAB 3 TODO BEGIN */
-
+        ret = (u32) syscall(__CHCORE_SYS_getc, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         /* LAB 3 TODO END */
         return ret;
 }
@@ -147,7 +175,7 @@ static inline int __chcore_sys_create_thread(u64 thread_args_p)
 static inline void __chcore_sys_thread_exit(void)
 {
         /* LAB 3 TODO BEGIN */
-
+        syscall(__CHCORE_SYS_thread_exit, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         /* LAB 3 TODO END */
 }
 

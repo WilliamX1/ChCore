@@ -14,6 +14,8 @@
 #include <object/cap_group.h>
 #include <sched/context.h>
 
+#define CHCORE_LAB3_TEST
+
 int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
 {
         struct vmregion *vmr;
@@ -56,21 +58,7 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                 fault_addr = ROUND_DOWN(fault_addr, PAGE_SIZE);
                 /* LAB 3 TODO BEGIN */
 
-                // void* page = get_pages(0);
-                // if (page == NULL) {
-                //         kdebug("Couldn't get a new page\n");
-                //         return -ENOMAPPING;
-                // };
-                // pa = (paddr_t) virt_to_phys(page);
-                // offset = ROUND_DOWN(fault_addr, PAGE_SIZE);
-                // ret = map_range_in_pgtbl(vmspace->pgtbl, offset, pa, PAGE_SIZE, vmr->perm);
-                // if (ret < 0) {
-                //         free_pages(page);
-                //         kdebug("Map range in pgtbl fault\n");
-                //         return -ENOMAPPING;
-                // };
-
-                pa = get_page_from_pmo(pmo, offset);
+                pa = get_page_from_pmo(pmo, index);
 
                 /* LAB 3 TODO END */
                 if (pa == 0) {
