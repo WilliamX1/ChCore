@@ -50,4 +50,5 @@ function(chcore_copy_all_targets_to_ramdisk)
     endforeach()
 endfunction()
 
+add_subdirectory(servers)
 add_subdirectory(apps)

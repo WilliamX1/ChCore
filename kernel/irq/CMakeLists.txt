@@ -1,1 +1,1 @@
-target_sources(${kernel_target} PRIVATE ipi.c)
+target_sources(${kernel_target} PRIVATE timer.c ipi.c)

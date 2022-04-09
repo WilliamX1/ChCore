@@ -60,12 +60,19 @@ target_include_directories(
 # Add source code directories
 add_subdirectory(arch/${CHCORE_ARCH})
 add_subdirectory(arch/${CHCORE_ARCH}/plat/${CHCORE_PLAT})
+add_subdirectory(ipc)
+add_subdirectory(semaphore)
 add_subdirectory(irq)
 add_subdirectory(lib)
 add_subdirectory(mm)
 add_subdirectory(object)
 add_subdirectory(sched)
 add_subdirectory(syscall)
+
+# Kernel testing
+if(CHCORE_KERNEL_TEST)
+    add_subdirectory(tests)
+endif()
 
 macro(_incbin _binary_name _binary_path)
     set(binary_name ${_binary_name})

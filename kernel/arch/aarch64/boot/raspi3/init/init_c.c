@@ -7,13 +7,13 @@
 char boot_cpu_stack[PLAT_CPU_NUMBER][INIT_STACK_SIZE] ALIGN(16);
 
 /*
- * Initialize these varibles in order to make them not in .bss section.
+ * Initialize these variables in order to make them not in .bss section.
  * So, they will have concrete initial value even on real machine.
  *
  * Non-primary CPUs will spin until they see the secondary_boot_flag becomes
  * non-zero which is set in kernel (see enable_smp_cores).
  *
- * The secondary_boot_flag is initilized as {NOT_BSS, 0, 0, ...}.
+ * The secondary_boot_flag is initialized as {NOT_BSS, 0, 0, ...}.
  */
 #define NOT_BSS (0xBEEFUL)
 long secondary_boot_flag[PLAT_CPU_NUMBER] = {NOT_BSS};
@@ -22,6 +22,28 @@ volatile u64 clear_bss_flag = NOT_BSS;
 /* Uart */
 void early_uart_init(void);
 void uart_send_string(char *);
+
+static void wakeup_other_cores(void)
+{
+        u64 *addr;
+
+        /*
+         * Set the entry address for non-primary cores.
+         * 0xe0, 0xe8, 0xf0 are fixed in the firmware (armstub8.bin).
+         */
+        addr = (u64 *)0xe0;
+        *addr = TEXT_OFFSET;
+        addr = (u64 *)0xe8;
+        *addr = TEXT_OFFSET;
+        addr = (u64 *)0xf0;
+        *addr = TEXT_OFFSET;
+
+        /*
+         * Instruction sev (set event) for waking up other (non-primary) cores
+         * that executes wfe instruction.
+         */
+        asm volatile("sev");
+}
 
 static void clear_bss(void)
 {
@@ -47,6 +69,8 @@ void init_c(void)
         early_uart_init();
         uart_send_string("boot: init_c\r\n");
 
+        wakeup_other_cores();
+
         /* Initialize Boot Page Table. */
         uart_send_string("[BOOT] Install boot page table\r\n");
         init_boot_pt();
@@ -60,4 +84,10 @@ void init_c(void)
         start_kernel(secondary_boot_flag);
 
         /* Never reach here */
+}
+
+void secondary_init_c(int cpuid)
+{
+        el1_mmu_activate();
+        secondary_cpu_boot(cpuid);
 }

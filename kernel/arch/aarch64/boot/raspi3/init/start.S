@@ -3,6 +3,9 @@
 
 .extern arm64_elX_to_el1
 .extern boot_cpu_stack
+.extern secondary_boot_flag
+.extern secondary_init_c
+.extern clear_bss_flag
 .extern init_c
 
 BEGIN_FUNC(_start)
@@ -10,8 +13,36 @@ BEGIN_FUNC(_start)
 	and	x8, x8,	#0xFF
 	cbz	x8, primary
 
-	/* hang all secondary processors before we introduce smp */
-	b 	.
+	/* Wait for bss clear */
+wait_for_bss_clear:
+	adr	x0, clear_bss_flag
+	ldr	x1, [x0]
+	cmp     x1, #0
+	bne	wait_for_bss_clear
+
+	/* Turn to el1 from other exception levels. */
+	bl 	arm64_elX_to_el1
+
+	/* Prepare stack pointer and jump to C. */
+	mov	x1, #INIT_STACK_SIZE
+	mul	x1, x8, x1
+	ldr 	x0, =boot_cpu_stack
+	add	x0, x0, x1
+	add	x0, x0, #INIT_STACK_SIZE
+	mov	sp, x0
+
+wait_until_smp_enabled:
+	/* CPU ID should be stored in x8 from the first line */
+	mov	x1, #8
+	mul	x2, x8, x1
+	ldr	x1, =secondary_boot_flag
+	add	x1, x1, x2
+	ldr	x3, [x1]
+	cbz	x3, wait_until_smp_enabled
+
+	/* Set CPU id */
+	mov	x0, x8
+	bl 	secondary_init_c
 
 primary:
 	/* Turn to el1 from other exception levels. */

@@ -17,7 +17,7 @@ struct thread;
 #else
 /* BUDGET represents the number of TICKs */
 #define DEFAULT_BUDGET 10
-#define TICK_MS        1
+#define TICK_MS        10
 #endif
 
 #define MAX_PRIO 255
@@ -97,6 +97,7 @@ void arch_idle_ctx_init(struct thread_ctx *idle_ctx, void (*func)(void));
 void arch_switch_context(struct thread *target);
 u64 switch_context(void);
 int sched_is_running(struct thread *target);
+void sched_handle_timer_irq(void);
 
 /* This interface is local to scheduler. */
 int switch_to_thread(struct thread *target);
@@ -139,3 +140,7 @@ static inline int sched_dequeue(struct thread *thread)
 {
         return cur_sched_ops->sched_dequeue(thread);
 }
+
+/* Syscalls */
+void sys_yield(void);
+void sys_top(void);

@@ -1,0 +1,78 @@
+#!/usr/bin/expect -f
+
+proc print {msg} {
+    puts "GRADE: $msg"
+    flush stdout
+}
+
+set timeout 10
+log_user 0
+
+spawn bash -c "make qemu"
+set qemu_pid [exp_pid -i $spawn_id]
+
+set scores {
+    {"Boot multicore" 0}
+    {"Mutex test" 0}
+    {"Cooperative" 0}
+    {"Preemptive" 0}
+    {"Affinity" 0}
+    {"Sched" 0}
+    {"Yield single" 0}
+}
+
+proc grade {} {
+    global scores
+    set score 0
+    foreach x $scores {
+        set name [lindex $x 0]
+        set n [lindex $x 1]
+        print "$name: $n"
+        incr score $n
+    }
+    global qemu_pid
+    exec kill -9 $qemu_pid
+    exit $score
+}
+
+trap {
+    grade
+} SIGINT
+
+expect {
+    "All 4 CPUs are active" {
+        lset scores {0 1} 5
+        exp_continue -continue_timer
+    }
+    "Pass tst_mutex!" {
+        lset scores {1 1} 5
+        exp_continue -continue_timer
+    }
+    "Pass tst_sched_cooperative!" {
+        lset scores {2 1} 5
+        exp_continue -continue_timer
+    }
+    "Pass tst_sched_preemptive!" {
+        lset scores {3 1} 5
+        exp_continue -continue_timer
+    }
+    "Pass tst_sched_affinity!" {
+        lset scores {4 1} 5
+        exp_continue -continue_timer
+    }
+    "Pass tst_sched!" {
+        lset scores {5 1} 5
+        exp_continue -continue_timer
+    }
+    "Iteration 10, thread 0, cpu 0" {
+        expect "Iteration 10, thread 1, cpu 0" {
+            lset scores {6 1} 5
+            grade
+        }
+    }
+    timeout {
+        grade
+    }
+}
+
+grade

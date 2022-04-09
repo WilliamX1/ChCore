@@ -449,7 +449,7 @@ int sys_map_pmos(u64 target_cap_group_cap, u64 user_buf, u64 cnt)
                 if (map_ret < 0)
                         ret = -EINVAL;
 
-                if (ret >= 0 && requests[i].free_cap == 1) {
+                if (map_ret >= 0 && requests[i].free_cap == 1) {
                         pmo = obj_get(current_cap_group,
                                       requests[i].pmo_cap,
                                       TYPE_PMO);

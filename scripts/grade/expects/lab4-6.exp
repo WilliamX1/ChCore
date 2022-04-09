@@ -1,0 +1,71 @@
+#!/usr/bin/expect -f
+
+proc print {msg} {
+    puts "GRADE: $msg"
+    flush stdout
+}
+
+set timeout 10
+log_user 0
+
+spawn bash -c "make qemu"
+set qemu_pid [exp_pid -i $spawn_id]
+
+set scores {
+    {"spawn" 0}
+    {"ipc no data" 0}
+    {"ipc data" 0}
+    {"ipc cap" 0}
+    {"ipc large data" 0}
+    {"ipc multiple" 0}
+}
+
+proc grade {} {
+    global scores
+    set score 0
+    foreach x $scores {
+        set name [lindex $x 0]
+        set n [lindex $x 1]
+        print "$name: $n"
+        incr score $n
+    }
+    global qemu_pid
+    exec kill -9 $qemu_pid
+    exit $score
+}
+
+trap {
+    grade
+} SIGINT
+
+expect {
+    "Hello from user.bin!" {
+        lset scores {0 1} 5
+        exp_continue -continue_timer
+    }
+    "IPC no data test .... Passed!" {
+        lset scores {1 1} 5
+        exp_continue -continue_timer
+    }
+    "IPC transfer data test .... Passed!" {
+        lset scores {2 1} 5
+        exp_continue -continue_timer
+    }
+    "IPC transfer cap test .... Passed!" {
+        lset scores {3 1} 5
+        exp_continue -continue_timer
+    }
+    "IPC transfer large data test .... Passed!" {
+        lset scores {4 1} 5
+        exp_continue -continue_timer
+    }
+    "20 threads concurrent IPC test .... Passed!" {
+        lset scores {5 1} 5
+        grade
+    }
+    timeout {
+        grade
+    }
+}
+
+grade

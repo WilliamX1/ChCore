@@ -10,6 +10,7 @@
 #include <sched/context.h>
 #include <arch/machine/registers.h>
 #include <arch/machine/smp.h>
+#include <arch/time.h>
 #include <irq/ipi.h>
 
 #include "thread_env.h"
@@ -267,9 +268,8 @@ void create_root_thread(void)
 
         root_thread = obj_get(root_cap_group, thread_cap, TYPE_THREAD);
         /* Enqueue: put init thread into the ready queue */
-
+        BUG_ON(sched_enqueue(root_thread));
         obj_put(root_thread);
-        switch_to_thread(root_thread);
 }
 
 /*
@@ -389,14 +389,17 @@ void sys_thread_exit(void)
         /* LAB 3 TODO BEGIN */
 
         /* LAB 3 TODO END */
-        printk("Lab 3 hang.\n");
-        while (1) {
-        }
         /* Reschedule */
         sched();
         eret_to_thread(switch_context());
 }
 
+/*
+ * Lab4
+ * Finish the sys_set_affinity
+ * You do not need to schedule out current thread immediately,
+ * as it is the duty of sys_yield()
+ */
 int sys_set_affinity(u64 thread_cap, s32 aff)
 {
         struct thread *thread = NULL;
@@ -420,6 +423,9 @@ int sys_set_affinity(u64 thread_cap, s32 aff)
                 goto out;
         }
 
+        /* LAB 4 TODO BEGIN */
+
+        /* LAB 4 TODO END */
         if (thread_cap != -1)
                 obj_put((void *)thread);
 out:
@@ -440,6 +446,9 @@ s32 sys_get_affinity(u64 thread_cap)
         }
         if (thread == NULL)
                 return -ECAPBILITY;
+        /* LAB 4 TODO BEGIN */
+
+        /* LAB 4 TODO END */
 
         if (thread_cap != -1)
                 obj_put((void *)thread);

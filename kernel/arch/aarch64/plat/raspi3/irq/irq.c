@@ -1,5 +1,6 @@
 #include <irq/irq.h>
 #include <common/kprint.h>
+#include <irq/timer.h>
 #include <io/uart.h>
 #include <machine.h>
 #include <common/types.h>
@@ -123,6 +124,11 @@ void plat_handle_irq(void)
 
         irq = 1 << ctzl(irq_src);
         switch (irq) {
+        case INT_SRC_TIMER1:
+                /* CNTPNSIRQ (Physical Non-Secure timer IRQ) */
+                // kinfo("handle_timer_irq\n");
+                handle_timer_irq();
+                return;
         default:
                 kinfo("Unsupported IRQ %d\n", irq);
                 break;

@@ -5,6 +5,8 @@
 #include <sched/sched.h>
 #include <object/cap_group.h>
 #include <arch/machine/smp.h>
+#include <ipc/connection.h>
+#include <irq/timer.h>
 
 extern struct thread *current_threads[PLAT_CPU_NUM];
 #define current_thread          (current_threads[smp_get_cpu_id()])

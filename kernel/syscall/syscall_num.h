@@ -31,9 +31,42 @@
 #define SYS_create_cap_group 80
 #define SYS_create_thread    82
 #define SYS_thread_exit      83
+/* - schedule */
+#define SYS_yield        100
+#define SYS_set_affinity 101
+#define SYS_get_affinity 102
+#define SYS_get_cpu_id   103
+
+/* IPC */
+/* - procedure call */
+#define SYS_register_server 120
+#define SYS_register_client 121
+#define SYS_ipc_call        122
+#define SYS_ipc_return      123
+
+/* Hardware Access (Privileged Instruction) */
+/* - cache */
+#define SYS_cache_flush 180
+/* - timer */
+#define SYS_get_current_tick 185
 
 /* POSIX */
+/* - time */
+#define SYS_clock_gettime 200
 /* - memory */
 #define SYS_handle_brk    210
 #define SYS_handle_mmap   211
 #define SYS_handle_munmap 212
+
+/* Debug */
+#define SYS_top               221
+#define SYS_get_free_mem_size 222
+
+/* Performance Benchmark */
+#define SYS_perf_start 230
+#define SYS_perf_end   231
+
+/* lab4 semaphore */
+#define SYS_create_sem 250
+#define SYS_wait_sem   251
+#define SYS_signal_sem 252

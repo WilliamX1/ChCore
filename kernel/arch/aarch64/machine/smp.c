@@ -10,6 +10,44 @@ volatile char cpu_status[PLAT_CPU_NUM] = {cpu_hang};
 
 u64 ctr_el0;
 
+void enable_smp_cores(paddr_t boot_flag)
+{
+        int i = 0;
+        long *secondary_boot_flag;
+
+        /* Set current cpu status */
+        cpu_status[smp_get_cpu_id()] = cpu_run;
+        secondary_boot_flag = (long *)phys_to_virt(boot_flag);
+        for (i = 0; i < PLAT_CPU_NUM; i++) {
+                /* Lab4
+                 * You should set one flag to enable the APs to continue in
+                 * _start. Then, what's the flag?
+                 */
+                /* LAB 4 TODO BEGIN */
+
+                /* LAB 4 TODO END */
+
+                flush_dcache_area((u64)secondary_boot_flag,
+                                  (u64)sizeof(u64) * PLAT_CPU_NUM);
+                asm volatile("dsb sy");
+
+                /* Lab4
+                 * The BSP waits for the currently initializing AP finishing
+                 * before activating the next one
+                 */
+                /* LAB 4 TODO BEGIN */
+
+                /* LAB 4 TODO END */
+                if (cpu_status[i] == cpu_run)
+                        kinfo("CPU %d is active\n", i);
+                else
+                        BUG("CPU %d not running!\n", i);
+        }
+        /* wait all cpu to boot */
+        kinfo("All %d CPUs are active\n", PLAT_CPU_NUM);
+        init_ipi_data();
+}
+
 inline u32 smp_get_cpu_id(void)
 {
         u64 cpuid = 0;

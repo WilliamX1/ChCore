@@ -151,6 +151,118 @@ static inline void __chcore_sys_thread_exit(void)
         /* LAB 3 TODO END */
 }
 
+/* - schedule */
+
+static inline void __chcore_sys_yield(void)
+{
+        __chcore_syscall0(__CHCORE_SYS_yield);
+}
+
+static inline int __chcore_sys_set_affinity(u64 thread_cap, s32 aff)
+{
+        return __chcore_syscall2(__CHCORE_SYS_set_affinity, thread_cap, aff);
+}
+
+static inline s32 __chcore_sys_get_affinity(u64 thread_cap)
+{
+        return __chcore_syscall1(__CHCORE_SYS_get_affinity, thread_cap);
+}
+
+static inline u32 __chcore_sys_get_cpu_id()
+{
+        return __chcore_syscall0(__CHCORE_SYS_get_cpu_id);
+}
+
+/* IPC */
+
+/* - procedure call */
+
+static inline u64 __chcore_sys_register_server(u64 ipc_rountine, u64 max_client,
+                                               u64 vm_config_ptr)
+{
+        return __chcore_syscall3(__CHCORE_SYS_register_server,
+                                 ipc_rountine,
+                                 max_client,
+                                 vm_config_ptr);
+}
+
+static inline u32 __chcore_sys_register_client(u32 server_cap,
+                                               u64 vm_config_ptr)
+{
+        return __chcore_syscall2(
+                __CHCORE_SYS_register_client, server_cap, vm_config_ptr);
+}
+
+static inline u64 __chcore_sys_ipc_call(u32 conn_cap, void *ipc_msg_in_client,
+                                        u64 cap_num)
+{
+        return __chcore_syscall3(__CHCORE_SYS_ipc_call,
+                                 conn_cap,
+                                 (long)ipc_msg_in_client,
+                                 cap_num);
+}
+
+static inline void __chcore_sys_ipc_return(u64 ret, u64 cap_num)
+{
+        __chcore_syscall2(__CHCORE_SYS_ipc_return, ret, cap_num);
+}
+
+/* Hardware Access (Privileged Instruction) */
+
+/* - cache */
+
+static inline int __chcore_sys_cache_flush(u64 start, s64 len, int op_type)
+{
+        return __chcore_syscall3(__CHCORE_SYS_cache_flush, start, len, op_type);
+}
+
+/* - timer */
+
+static inline u64 __chcore_sys_get_current_tick(void)
+{
+        return __chcore_syscall0(__CHCORE_SYS_get_current_tick);
+}
+
+/* Debug */
+
+static inline void __chcore_sys_top(void)
+{
+        __chcore_syscall0(__CHCORE_SYS_top);
+}
+
+static inline u64 __chcore_sys_get_free_mem_size(void)
+{
+        return __chcore_syscall0(__CHCORE_SYS_get_free_mem_size);
+}
+
+/* Performance Benchmark */
+
+static inline void __chcore_sys_perf_start(void)
+{
+        __chcore_syscall0(__CHCORE_SYS_perf_start);
+}
+
+static inline void __chcore_sys_perf_end(void)
+{
+        __chcore_syscall0(__CHCORE_SYS_perf_end);
+}
+
+/* lab4 semaphore */
+static inline s32 __chcore_sys_create_sem(void)
+{
+        return __chcore_syscall0(__CHCORE_SYS_create_sem);
+}
+
+static inline s32 __chcore_sys_wait_sem(u32 sem_cap, bool is_block)
+{
+        return __chcore_syscall2(__CHCORE_SYS_wait_sem, sem_cap, is_block);
+}
+
+static inline s32 __chcore_sys_signal_sem(u32 sem_cap)
+{
+        return __chcore_syscall1(__CHCORE_SYS_signal_sem, sem_cap);
+}
+
 #ifdef __cplusplus
 }
 #endif

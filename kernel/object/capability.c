@@ -15,6 +15,7 @@ const obj_deinit_func obj_deinit_tbl[TYPE_NR] = {
         [0 ... TYPE_NR - 1] = NULL,
         [TYPE_CAP_GROUP] = cap_group_deinit,
         [TYPE_THREAD] = thread_deinit,
+        [TYPE_CONNECTION] = connection_deinit,
         [TYPE_PMO] = pmo_deinit,
         [TYPE_VMSPACE] = vmspace_deinit,
 };

@@ -5,6 +5,7 @@
 #include <common/types.h>
 #include <common/lock.h>
 #include <arch/machine/smp.h>
+#include <arch/machine/pmu.h>
 #include <arch/mm/page_table.h>
 #include <mm/mm.h>
 #include <io/uart.h>
@@ -26,6 +27,9 @@ static void lab2_test_kernel_vaddr(void)
 
 #include <mm/kmalloc.h>
 #include <arch/mm/page_table.h>
+
+/* Kernel Test */
+void run_test(void);
 #endif /* CHCORE_KERNEL_TEST */
 
 /*
@@ -34,6 +38,11 @@ static void lab2_test_kernel_vaddr(void)
 void main(paddr_t boot_flag)
 {
         u32 ret = 0;
+
+        /* Init big kernel lock */
+        kernel_lock_init();
+        kinfo("[ChCore] lock init finished\n");
+        BUG_ON(ret != 0);
 
         /* Init uart: no need to init the uart again */
         uart_init();
@@ -56,14 +65,61 @@ void main(paddr_t boot_flag)
 
         /* Init exception vector */
         arch_interrupt_init();
+        /* LAB 4 TODO BEGIN */
+
+        /* LAB 4 TODO END */
         kinfo("[ChCore] interrupt init finished\n");
 
+        /* Enable PMU by setting PMCR_EL0 register */
+        pmu_init();
+        kinfo("[ChCore] pmu init finished\n");
+
+        /* Init scheduler with specified policy */
+        sched_init(&rr);
+        kinfo("[ChCore] sched init finished\n");
+
+        /* Other cores are busy looping on the addr, wake up those cores */
+        enable_smp_cores(boot_flag);
+        kinfo("[ChCore] boot multicore finished\n");
+
+#ifdef CHCORE_KERNEL_TEST
+        run_test();
+#endif
+
+        lock_kernel();
+        /* Create initial thread here, which use the `init.bin` */
         create_root_thread();
         kinfo("[ChCore] create initial thread done on %d\n", smp_get_cpu_id());
+
+        /* Leave the scheduler to do its job */
+        sched();
 
         /* Context switch to the picked thread */
         eret_to_thread(switch_context());
 
         /* Should provide panic and use here */
         BUG("[FATAL] Should never be here!\n");
+}
+
+void secondary_start(void)
+{
+        u32 cpuid = smp_get_cpu_id();
+
+        arch_interrupt_init_per_cpu();
+        pmu_init();
+
+        /* LAB 4 TODO BEGIN: Set the cpu_status */
+
+        /* LAB 4 TODO END */
+#ifdef CHCORE_KERNEL_TEST
+        run_test();
+#endif
+
+        /* LAB 4 TODO BEGIN */
+
+        /* LAB 4 TODO END */
+
+        lock_kernel();
+        sched();
+        eret_to_thread(switch_context());
 }

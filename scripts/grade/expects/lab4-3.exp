@@ -1,0 +1,55 @@
+#!/usr/bin/expect -f
+
+proc print {msg} {
+    puts "GRADE: $msg"
+    flush stdout
+}
+
+set timeout 10
+log_user 0
+
+spawn bash -c "make qemu"
+set qemu_pid [exp_pid -i $spawn_id]
+
+set scores {
+    {"Yield multi" 0}
+}
+
+proc grade {} {
+    global scores
+    set score 0
+    foreach x $scores {
+        set name [lindex $x 0]
+        set n [lindex $x 1]
+        print "$name: $n"
+        incr score $n
+    }
+    global qemu_pid
+    exec kill -9 $qemu_pid
+    exit $score
+}
+
+trap {
+    grade
+} SIGINT
+
+expect {
+    "create initial thread done" {
+        for {set i 0} {$i <= 3} {incr i} {
+            expect {
+                -re "Hello, I am thread $i on cpu $i" {
+                }
+                timeout {
+                    grade
+                }
+            }
+        }
+        lset scores {0 1} 5
+        grade
+    }
+    timeout {
+        grade
+    }
+}
+
+grade

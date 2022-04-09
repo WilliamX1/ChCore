@@ -40,3 +40,32 @@ BEGIN_FUNC(start_kernel)
 
     bl      main
 END_FUNC(start_kernel)
+
+BEGIN_FUNC(secondary_cpu_boot)
+
+    /* We store the logical cpuid in TPIDR_EL1 */
+    msr     TPIDR_EL1, x0
+
+    mov     x1, #KERNEL_STACK_SIZE
+    mul     x2, x0, x1
+    ldr     x3, =kernel_stack
+    add     x2, x2, x3
+    add     x2, x2, KERNEL_STACK_SIZE
+    mov     sp, x2
+
+    /*
+     * Make sure that we don't use low address in the kernel,
+     * until we have our first user-level process.
+     */
+    mov     x2, #0
+    msr     ttbr0_el1, x2
+    isb
+
+    /*
+     * Call flush_tlb_all here to flush all the cached TLBs for
+     * the boot time TTBR0_EL1.
+     */
+    bl flush_tlb_all
+
+    bl      secondary_start
+END_FUNC(secondary_cpu_boot)

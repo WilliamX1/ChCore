@@ -1,0 +1,12 @@
+add_executable(user.bin user.c)
+add_executable(ipc_client.bin ipc_client.c)
+add_executable(test_mutex.bin test_mutex.c mutex.c)
+add_executable(test_sem.bin test_sem.c)
+add_executable(prodcons.bin prodcons.c prodcons_impl.c buf.c)
+add_executable(yield_single.bin yield_single.c)
+add_executable(yield_aff.bin yield_aff.c)
+add_executable(yield_multi_aff.bin yield_multi_aff.c)
+add_executable(yield_multi.bin yield_multi.c)
+add_executable(yield_spin.bin yield_spin.c)
+
+chcore_install_all_targets()
