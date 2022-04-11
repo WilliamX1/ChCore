@@ -14,9 +14,25 @@
 	b	\label
 .endm
 
-/* See more details a1bout the bias in registers.h */
+/* See more details about the bias in registers.h */
 .macro	exception_enter
 	/* LAB 3 TODO BEGIN */
+	sub sp, sp, #ARCH_EXEC_CONT_SIZE
+	stp	x0, x1, [sp, #16 * 0]
+	stp	x2, x3, [sp, #16 * 1]
+	stp	x4, x5, [sp, #16 * 2]
+	stp	x6, x7, [sp, #16 * 3]
+	stp	x8, x9, [sp, #16 * 4]
+	stp	x10, x11, [sp, #16 * 5]
+	stp	x12, x13, [sp, #16 * 6]
+	stp	x14, x15, [sp, #16 * 7]
+	stp	x16, x17, [sp, #16 * 8]
+	stp	x18, x19, [sp, #16 * 9]
+	stp	x20, x21, [sp, #16 * 10]
+	stp	x22, x23, [sp, #16 * 11]
+	stp	x24, x25, [sp, #16 * 12]
+	stp	x26, x27, [sp, #16 * 13]
+	stp	x28, x29, [sp, #16 * 14]
 
 	/* LAB 3 TODO END */
 	mrs	x21, sp_el0
@@ -24,11 +40,17 @@
 	mrs	x23, spsr_el1
 	/* LAB 3 TODO BEGIN */
 
+	stp	x30, x21, [sp, #16 * 15]
+	stp	x22, x23, [sp, #16 * 16]
+
 	/* LAB 3 TODO END */
 .endm
 
 .macro	exception_exit
 	/* LAB 3 TODO BEGIN */
+
+	ldp	x22, x23, [sp, #16 * 16]
+	ldp	x30, x21, [sp, #16 * 15] 
 
 	/* LAB 3 TODO END */
 	msr	sp_el0, x21
@@ -36,6 +58,23 @@
 	msr	spsr_el1, x23
 	/* LAB 3 TODO BEGIN */
 
+	ldp	x0, x1, [sp, #16 * 0]
+	ldp	x2, x3, [sp, #16 * 1]
+	ldp	x4, x5, [sp, #16 * 2]
+	ldp	x6, x7, [sp, #16 * 3]
+	ldp	x8, x9, [sp, #16 * 4]
+	ldp	x10, x11, [sp, #16 * 5]
+	ldp	x12, x13, [sp, #16 * 6]
+	ldp	x14, x15, [sp, #16 * 7]
+	ldp	x16, x17, [sp, #16 * 8]
+	ldp	x18, x19, [sp, #16 * 9]
+	ldp	x20, x21, [sp, #16 * 10]
+	ldp	x22, x23, [sp, #16 * 11]
+	ldp	x24, x25, [sp, #16 * 12]
+	ldp	x26, x27, [sp, #16 * 13]
+	ldp	x28, x29, [sp, #16 * 14]
+	add	sp, sp, #ARCH_EXEC_CONT_SIZE
+	
 	/* LAB 3 TODO END */
 	eret
 .endm
@@ -70,6 +109,26 @@
 EXPORT(el1_vector)
 /* LAB 3 TODO BEGIN */
 
+exception_entry sync_el1t
+exception_entry irq_el1t
+exception_entry fiq_el1t
+exception_entry error_el1t
+
+exception_entry sync_el1h
+exception_entry irq_el1h
+exception_entry fiq_el1h
+exception_entry error_el1h
+
+exception_entry sync_el0_64
+exception_entry irq_el0_64
+exception_entry fiq_el0_64
+exception_entry error_el0_64
+
+exception_entry sync_el0_32
+exception_entry irq_el0_32
+exception_entry fiq_el0_32
+exception_entry error_el0_32
+
 /* LAB 3 TODO END */
 /*
  * The selected stack pointer can be indicated by a suffix to the Exception Level:
@@ -99,7 +158,7 @@ error_el1t:
 error_el1h:
 sync_el1t:
 	/* LAB 3 TODO BEGIN */
-
+	bl unexpected_handler
 	/* LAB 3 TODO END */
 
 sync_el1h:
@@ -108,7 +167,7 @@ sync_el1h:
 	mrs	x1, esr_el1
 	mrs	x2, elr_el1
 	/* LAB 3 TODO BEGIN */
-
+	bl	handle_entry_c
 	/* LAB 3 TODO END */
 	exception_exit /* Lab4: Do not unlock! */
 
