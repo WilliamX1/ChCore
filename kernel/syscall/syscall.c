@@ -71,7 +71,7 @@ u32 sys_get_cpu_id()
 {
         u32 cpuid = 0;
         /* LAB 4 TODO BEGIN */
-
+        cpuid = smp_get_cpu_id();
         /* LAB 4 TODO END */
         return cpuid;
 }

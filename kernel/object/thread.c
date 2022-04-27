@@ -98,32 +98,19 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         p_vaddr = elf->p_headers[i].p_vaddr;
                         /* LAB 3 TODO BEGIN */
 
-                        u64 vaddr_start = ROUND_DOWN(p_vaddr, PAGE_SIZE);
-                        u64 vaddr_end = ROUND_UP(p_vaddr + seg_sz, PAGE_SIZE);
-                        seg_map_sz = vaddr_end - vaddr_start;
-
+                        seg_map_sz = ROUND_UP(seg_sz + p_vaddr, PAGE_SIZE) - ROUND_DOWN(p_vaddr, PAGE_SIZE);
                         pmo = obj_alloc(TYPE_PMO, sizeof(*pmo));
-                        if (!pmo) {
-                                r = -ENOMEM;
-                                goto out_free_cap;
-                        }
-                        pmo_init(pmo, PMO_DATA, seg_map_sz, 0);
-                        pmo_cap[i] = cap_alloc(cap_group, pmo, 0);
-                        if (pmo_cap[i] < 0) {
-                                r = pmo_cap[i];
-                                goto out_free_obj;
-                        };
 
-                        u64 start_offset = p_vaddr - vaddr_start;
-                        char* pmo_start = (char *) phys_to_virt(pmo->start) + start_offset;
-                        char* seg_start = bin + elf->p_headers[i].p_offset;
-                        u64 copy_size = elf->p_headers[i].p_filesz;
-                        for (u64 i = 0; i < copy_size; i++) {
-                                pmo_start[i] = seg_start[i];
-                        };
+                        memset((void*)pmo, 0, sizeof(*pmo));
+                        pmo->size = seg_map_sz;
+                        pmo->type = PMO_DATA;
+                        pmo->start = (paddr_t)virt_to_phys(kmalloc(seg_map_sz));
+                        pmo_cap[i] = cap_alloc(cap_group, pmo, 0);
+
+                        memset((void *)phys_to_virt(pmo->start), 0, pmo->size);
+                        memcpy((void *)phys_to_virt(pmo->start) + (elf->p_headers[i].p_vaddr & OFFSET_MASK), bin + elf->p_headers[i].p_offset, elf->p_headers[i].p_filesz);
 
                         flags = PFLAGS2VMRFLAGS(elf->p_headers[i].p_flags);
-
                         ret = vmspace_map_range(vmspace, ROUND_DOWN(p_vaddr, PAGE_SIZE), seg_map_sz, flags, pmo);
 
                         /* LAB 3 TODO END */
@@ -143,8 +130,6 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
 
         /* PC: the entry point */
         return elf->header.e_entry;
-out_free_obj:
-        obj_free(pmo);
 out_free_cap:
         for (--i; i >= 0; i--) {
                 if (pmo_cap[i] != 0)
@@ -418,13 +403,8 @@ void sys_thread_exit(void)
 #endif
         /* LAB 3 TODO BEGIN */
 
-        int cpuid = smp_get_cpu_id();
-        struct thread* target = current_threads[cpuid];
-
-        target->thread_ctx->state = TS_EXIT;
-        obj_free(target);
-
-        current_threads[cpuid] = NULL;
+        current_thread->thread_ctx->state = TS_EXIT;
+        current_thread = NULL;
         
         /* LAB 3 TODO END */
         /* Reschedule */
@@ -462,7 +442,7 @@ int sys_set_affinity(u64 thread_cap, s32 aff)
         }
 
         /* LAB 4 TODO BEGIN */
-
+        thread->thread_ctx->affinity = aff;
         /* LAB 4 TODO END */
         if (thread_cap != -1)
                 obj_put((void *)thread);
@@ -485,7 +465,7 @@ s32 sys_get_affinity(u64 thread_cap)
         if (thread == NULL)
                 return -ECAPBILITY;
         /* LAB 4 TODO BEGIN */
-
+        aff = thread->thread_ctx->affinity;
         /* LAB 4 TODO END */
 
         if (thread_cap != -1)

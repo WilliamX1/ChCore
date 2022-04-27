@@ -14,9 +14,10 @@
 	b	\label
 .endm
 
-/* See more details about the bias in registers.h */
+/* See more details a1bout the bias in registers.h */
 .macro	exception_enter
 	/* LAB 3 TODO BEGIN */
+
 	sub sp, sp, #ARCH_EXEC_CONT_SIZE
 	stp	x0, x1, [sp, #16 * 0]
 	stp	x2, x3, [sp, #16 * 1]
@@ -49,8 +50,8 @@
 .macro	exception_exit
 	/* LAB 3 TODO BEGIN */
 
-	ldp	x22, x23, [sp, #16 * 16]
 	ldp	x30, x21, [sp, #16 * 15] 
+	ldp	x22, x23, [sp, #16 * 16]
 
 	/* LAB 3 TODO END */
 	msr	sp_el0, x21
@@ -74,7 +75,7 @@
 	ldp	x26, x27, [sp, #16 * 13]
 	ldp	x28, x29, [sp, #16 * 14]
 	add	sp, sp, #ARCH_EXEC_CONT_SIZE
-	
+
 	/* LAB 3 TODO END */
 	eret
 .endm
@@ -108,27 +109,25 @@
 .align	11
 EXPORT(el1_vector)
 /* LAB 3 TODO BEGIN */
+	exception_entry sync_el1t
+	exception_entry irq_el1t
+	exception_entry fiq_el1t
+	exception_entry error_el1t
 
-exception_entry sync_el1t
-exception_entry irq_el1t
-exception_entry fiq_el1t
-exception_entry error_el1t
+	exception_entry sync_el1h
+	exception_entry irq_el1h
+	exception_entry fiq_el1h
+	exception_entry error_el1h
+	
+	exception_entry sync_el0_64
+	exception_entry irq_el0_64
+	exception_entry fiq_el0_64
+	exception_entry error_el0_64
 
-exception_entry sync_el1h
-exception_entry irq_el1h
-exception_entry fiq_el1h
-exception_entry error_el1h
-
-exception_entry sync_el0_64
-exception_entry irq_el0_64
-exception_entry fiq_el0_64
-exception_entry error_el0_64
-
-exception_entry sync_el0_32
-exception_entry irq_el0_32
-exception_entry fiq_el0_32
-exception_entry error_el0_32
-
+	exception_entry sync_el0_32
+	exception_entry irq_el0_32
+	exception_entry fiq_el0_32
+	exception_entry error_el0_32	
 /* LAB 3 TODO END */
 /*
  * The selected stack pointer can be indicated by a suffix to the Exception Level:
@@ -158,7 +157,9 @@ error_el1t:
 error_el1h:
 sync_el1t:
 	/* LAB 3 TODO BEGIN */
+	
 	bl unexpected_handler
+
 	/* LAB 3 TODO END */
 
 sync_el1h:
@@ -167,7 +168,9 @@ sync_el1h:
 	mrs	x1, esr_el1
 	mrs	x2, elr_el1
 	/* LAB 3 TODO BEGIN */
+
 	bl	handle_entry_c
+
 	/* LAB 3 TODO END */
 	exception_exit /* Lab4: Do not unlock! */
 
@@ -184,6 +187,9 @@ sync_el0_64:
 	mrs	x2, elr_el1
 	bl	handle_entry_c
 
+	/* LAB 4 TODO: BEGIN */
+	bl unlock_kernel
+	/* LAB 4 TODO: END */
 	exception_exit
 
 el0_syscall:
@@ -199,7 +205,7 @@ el0_syscall:
 	stp	x14, x15, [sp, #16 * 7]
 	
 	/* LAB 4 TODO BEGIN */
-
+	bl  lock_kernel
 	/* LAB 4 TODO END */
 
 	ldp	x0, x1, [sp, #16 * 0]
@@ -219,7 +225,10 @@ el0_syscall:
 
 	/* Ret from syscall */
 	str	x0, [sp]
-
+	
+	/* LAB 4 TODO: BEGIN */
+	bl unlock_kernel
+	/* LAB 4 TODO: END */
 	exception_exit
 
 
@@ -242,6 +251,9 @@ error_el0_32:
 BEGIN_FUNC(__eret_to_thread)
 	mov	sp, x0
 	dmb ish
-
+	
+	/* LAB 4 TODO: BEGIN */
+	bl unlock_kernel
+	/* LAB 4 TODO: END */
 	exception_exit
 END_FUNC(__eret_to_thread)
