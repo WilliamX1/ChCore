@@ -17,12 +17,15 @@
 在实验1中我们已经介绍，在QEMU模拟的树莓派中，所有CPU核心在开机时会被同时启动。在引导时这些核心会被分为两种类型。一个指定的CPU核心会引导整个操作系统和初始化自身，被称为**主CPU**（primary CPU）。其他的CPU核心只初始化自身即可，被称为**其他CPU**（backup CPU）。CPU核心仅在系统引导时有所区分，在其他阶段，每个CPU核心都是被相同对待的。
 
 > **思考题 1：**阅读汇编代码`kernel/arch/aarch64/boot/raspi3/init/start.S`。说明ChCore是如何选定主CPU，并阻塞其他其他CPU的执行的。
+> **答案：**通过`mpidr_el1`读取到当前的ID，然后判断主CPU与其他CPU。对于其他CPU，会等待在`secondary_boot_flag[cpu_id]`上。
 
 在树莓派真机中，还需要主CPU手动指定每一个CPU核心的的启动地址。这些CPU核心会读取固定地址的上填写的启动地址，并跳转到该地址启动。在`kernel/arch/aarch64/boot/raspi3/init/init_c.c`中，我们提供了`wakeup_other_cores`函数用于实现该功能，并让所有的CPU核心同在QEMU一样开始执行`_start`函数。
 
 与之前的实验一样，主CPU在第一次返回用户态之前会在`kernel/arch/aarch64/main.c`中执行`main`函数，进行操作系统的初始化任务。在本小节中，ChCore将执行`enable_smp_cores`函数激活各个其他CPU。
 
 > **思考题2：**阅读汇编代码`kernel/arch/aarch64/boot/raspi3/init/start.S, init_c.c`以及`kernel/arch/aarch64/main.c`，解释用于阻塞其他CPU核心的`secondary_boot_flag`是物理地址还是虚拟地址？是如何传入函数`enable_smp_cores`中，又该如何赋值的（考虑虚拟地址/物理地址）？
+
+> **答案：**：在`init/`目录下定义的都是物理地址，通过`start_kernel`带的参数传入。在`enable_smp_cores`中通过`phys_to_virt`转换为虚拟地址。
 
 > **练习3：**完善主CPU激活各个其他CPU的函数：`enable_smp_cores`和`kernel/arch/aarch64/main.c`中的`secondary_start`。请注意测试代码会要求各个其他CPU按序被依次激活。在完成该部分之后，应看到如下输出：
 >
@@ -42,8 +45,8 @@
 
 ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`kernel_lock_init`，上锁与放锁操作`lock_kernel`与`unlock_kernel`。在本实验中，为了在CPU核心进入内核态时拿锁、离开内核态时放锁，应该在以下5个位置调用上述接口进行**加锁操作**：
 
-1. `kernel/arch/aarch64/main.c`中的`main`：主CPU在激活其他CPU之前需要首先获得了大内核锁。
-2. `kernel/arch/aarch64/main.c`中的`secondary_start`：在初始化完成之后且其他CPU返回用户态之前获取大内核锁。
+1. `kernel/arch/aarch64/main.c`中的`main`：主CPU在初始化完成之后且其他CPU返回用户态之前获取大内核锁。
+2. `kernel/arch/aarch64/main.c`中的`secondary_start`：其他CPU在初始化完成之后且返回用户态之前获取大内核锁。
 3. `kernel/arch/aarch64/irq/irq_entry.S`中的`el0_syscall`：在跳转到`syscall_table`中相应的`syscall`条目之前获取大内核锁（该部分汇编代码已实现完成）。
 4. `kernel/arch/aarch64/irq/irq_entry.c`中的`handle_entry_c`：在该异常处理函数的第一行获取大内核锁。因为在内核态下也可能会发生异常，所以如果异常是在内核中捕获的，则不应获取大内核锁。
 5. `kernel/arch/aarch64/irq/irq_entry.c`中的`handle_irq`：在中断处理函数的第一行获取大内核锁。与`handle_entry_c`类似，如果是内核异常，则不应获取该锁。
@@ -53,7 +56,7 @@ ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`k
 > 1. 请熟悉排号锁的基本算法，并在`kernel/arch/aarch64/sync/ticket.c`中完成`unlock`和`is_locked`的代码。
 > 2. 在`kernel/arch/aarch64/sync/ticket.c`中实现`kernel_lock_init`、`lock_kernel`和`unlock_kernel`。
 > 3. 在适当的位置调用`lock_kernel`。
-> 4. 判断什么时候需要放锁，添加`unlock_kernel`。
+> 4. 判断什么时候需要放锁，添加`unlock_kernel`。（注意：由于这里需要自行判断，没有在需要添加的代码周围插入TODO注释）
 >
 > 至此，ChCore已经可以通过使用大内核锁来处理可能的并发问题。本练习的前2项可以通过提供的内核锁测试检查是否正确，后2项内容则需后续完成调度后再核对（ChCore应能正常运行用户态程序）。
 >
@@ -66,8 +69,13 @@ ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`k
 > ```
 
 > **思考题5：**在`el0_syscall`调用`lock_kernel`时，在栈上保存了寄存器的值。这是为了避免调用`lock_kernel`时修改这些寄存器。在`unlock_kernel`时，是否需要将寄存器的值保存到栈中，试分析其原因。
+> **答案：**：离开kernel时上下文已经没有用了，因此无需保存。
 
 在课本中，我们还介绍了由于嵌套中断可能会导致死锁，其必须使用可重入锁来解决。为简单起见，ChCore实验不考虑可重入锁。在内核中，我们关闭了中断。
+这一功能是在硬件的帮助下实现的。
+当异常触发时，中断即被禁用。
+当汇编代码`eret`被调用时，中断则会被重新启用。
+因此，在整个实验的实现过程中，可以无需考虑时钟中断打断内核代码执行的情况，而仅需要其对用户态进程的影响。
 
 ## 第二部分：调度
 
@@ -102,6 +110,7 @@ ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`k
 当线程退出时（即`thread_exit_state`被设置为`TE_EXITING`时），其也会调用`rr_sched`来调度到其他线程执行。因此，当判断到当前的线程正在退出时，`rr_sched`需要更新线程的状态`state`为`TS_EXIT`以及其退出状态`thread_exit_state`为`TE_EXITED`。此外，该线程也不应加入到等待队列中。
 
 > **思考题6：**为何`idle_threads`不会加入到等待队列中？请分析其原因？
+> **答案：**如果有其他可以运行的线程，就不应该调度到`idle_threads`，而不是加入到队列参与正常调度。
 
 `rr_sched_init`用于初始化调度器。它只能在内核初始化流程中被调用一次。由主CPU负责初始化`rr_ready_queue_meta`和`idle_threads`中的所有条目。
 
@@ -118,6 +127,7 @@ ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`k
 > ```
 
 > **思考题8：**如果异常是从内核态捕获的，CPU核心不会在`kernel/arch/aarch64/irq/irq_entry.c`的`handle_irq`中获得大内核锁。但是，有一种特殊情况，即如果空闲线程（以内核态运行）中捕获了错误，则CPU核心还应该获取大内核锁。否则，内核可能会被永远阻塞。请思考一下原因。
+> **答案：**在`idle_thread`时如果时钟中断来了没有获取锁，其在处理完后会调用`unlock_kernel`。目前实现的排号锁会对`lock->owner`加1。如果此时没有人获取锁，那么后续调用`lock_kernel`拿到的`lockval`将永远小于`owner`，导致永久阻塞。
 
 在本小节中，ChCore还处于协作式调度。顾名思义，协作式调度需要线程主动放弃CPU。为了实现该功能，我们提供了`sys_yield`这一个新的syscall。该syscall可以主动放弃当前CPU核心，并调用上述的`sched`接口完成调度器的调度工作。
 

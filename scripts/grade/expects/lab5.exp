@@ -1,0 +1,143 @@
+#!/usr/bin/expect -f
+
+proc print {msg} {
+    puts "GRADE: $msg"
+    flush stdout
+}
+
+set timeout 20
+log_user 0
+
+spawn bash -c "make qemu"
+set qemu_pid [exp_pid -i $spawn_id]
+
+set scores {
+    {"tmpfs: tfs_load_image "            0 15}
+    {"tmpfs: mkdir "                     0 5}
+    {"tmpfs: read_write "                0 5}
+    {"tmpfs: unlink "                    0 5}
+    {"shell: echo "                      0 3}
+    {"shell: ls "                        0 8}
+    {"shell: cat "                       0 8}
+    {"shell: readline "                  0 4}
+    {"shell: do_complement "             0 9}
+    {"shell: run cmd "                   0 3}
+    {"fs: fread & fwrite "            0 7}
+    {"fs: fprintf & fscanf "          0 8}
+    {"fs: FSM getdents "              0 8}
+    {"fs: FSM read file "             0 6}
+    {"fs: FSM optimization "             0 6}
+}
+
+proc grade {} {
+    global scores
+    set score 0
+    foreach x $scores {
+        set name [lindex $x 0]
+        set n [lindex $x 1]
+        print "$name: $n"
+        incr score $n
+    }
+    global qemu_pid
+    exec kill -9 $qemu_pid
+    exit $score
+}
+
+trap {
+    grade
+} SIGINT
+
+expect {   
+    "test_tfs_load_image pass!" {
+        lset scores {0 1} [lindex $scores {0 2}]
+        exp_continue -continue_timer
+    }
+    "Testdir-test_dir2 Testdir-test_dir3 test_mkdir pass!" {
+        lset scores {1 1} [lindex $scores {1 2}]
+        exp_continue -continue_timer
+    }
+    "test_read_write pass!" {
+        lset scores {2 1} [lindex $scores {2 2}]
+        exp_continue -continue_timer
+    }
+    "test_unlink pass!" {
+        lset scores {3 1} [lindex $scores {3 2}]
+        exp_continue -continue_timer
+    }
+    "abc123XYZ" { 
+        lset scores {4 1} [lindex $scores {4 2}]
+        exp_continue -continue_timer
+    }
+    "SHELL lab5.bin helloworld.bin test.txt" {
+        lset scores {5 1} [lindex $scores {5 2}]
+        exp_continue -continue_timer
+    }
+    "SHELL 1234567890" {
+        lset scores {6 1} [lindex $scores {6 2}]
+        exp_continue -continue_timer
+    }
+
+    "1>" {
+        send -- "Enter simpleline\n"
+        expect {
+            "Enter simpleline" { lset scores {7 1} [lindex $scores {7 2}]; exp_continue -continue_timer}
+            -timeout 1
+        }
+        exp_continue -continue_timer
+    }
+
+    "2>" {
+        send -- "\t"
+        expect {
+            "lab5.bin" { send -- "\t"; exp_continue -continue_timer}
+            "helloworld.bin" {send -- "\t"; exp_continue -continue_timer}
+            "test.txt" {lset scores {8 1} [lindex $scores {8 2}];}
+            -timeout 2
+        } 
+        send -- "\n"
+        exp_continue -continue_timer
+    }
+
+    "Hello World" {
+        lset scores {9 1} [lindex $scores {9 2}]
+        exp_continue -continue_timer
+    }
+    "lab5_stdio_file_read_write pass!" {
+        lset scores {10 1} [lindex $scores {10 2}]
+        exp_continue -continue_timer
+    }
+    "lab5_stdio_file_printf_scanf pass!" {
+        lset scores {11 1} [lindex $scores {11 2}]
+        exp_continue -continue_timer
+    }
+    "FSM lab5.bin helloworld.bin test.txt fakefs" {
+        expect  {
+            "FSM test.txt hello.txt world.txt testdir testdir2" {
+                lset scores {12 1} [lindex $scores {12 2}]
+            }
+            -timeout 2
+        }
+        exp_continue -continue_timer
+    }
+    "FSM test file!" {
+        expect {
+          "FSM 1234567890" {lset scores {13 1} [lindex $scores {13 2}]}
+          -timeout 2
+        }
+        exp_continue -continue_timer
+    }
+    "chcore fsm bypass test pass" {
+        lset scores {14 1} [lindex $scores {14 2}]
+        exp_continue -continue_timer
+    }
+    
+    # last ouput before spinning
+    "The shell_test finish!" {
+        grade
+    }
+    timeout {
+        grade
+    }
+}
+
+grade
