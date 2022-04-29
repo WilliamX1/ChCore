@@ -110,7 +110,7 @@ expect {
         lset scores {11 1} [lindex $scores {11 2}]
         exp_continue -continue_timer
     }
-    "FSM lab5.bin helloworld.bin test.txt fakefs" {
+    "FSM lab5.bin helloworld.bin test.txt myfile.txt myfile2.txt fakefs" {
         expect  {
             "FSM test.txt hello.txt world.txt testdir testdir2" {
                 lset scores {12 1} [lindex $scores {12 2}]
