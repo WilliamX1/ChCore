@@ -81,7 +81,10 @@ int fs_creat(const char *path)
 	BUG_ON(*path != '/');
 
 	/* LAB 5 TODO BEGIN */
-
+	err = tfs_namex(&dirat, &leaf, 0); // leaf = absolute path makes dirat automatedly be root inode
+	if (err < 0 && err != -ENOENT)
+		return err;
+	err = tfs_creat(dirat, leaf, strlen(leaf));
 	/* LAB 5 TODO END */
 	return 0;
 
@@ -103,7 +106,10 @@ int tmpfs_unlink(const char *path, int flags)
 	BUG_ON(*path != '/');
 
 	/* LAB 5 TODO BEGIN */
-
+	err = tfs_namex(&dirat, &leaf, 0);
+	if (err < 0)
+		return err;
+	err = tfs_remove(dirat, leaf, strlen(leaf));
 	/* LAB 5 TODO END */
 	return err;
 }
@@ -123,7 +129,10 @@ int tmpfs_mkdir(const char *path, mode_t mode)
 	BUG_ON(*path != '/');
 
 	/* LAB 5 TODO BEGIN */
-
+	err = tfs_namex(&dirat, &leaf, 0); // leaf = absolute path makes dirat automatedly be root inode
+	if (err < 0 && err != -ENOENT)
+		return err;
+	err = tfs_mkdir(dirat, leaf, strlen(leaf));
 	/* LAB 5 TODO END */
 	return err;
 }
