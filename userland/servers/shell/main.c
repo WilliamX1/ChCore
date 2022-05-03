@@ -22,7 +22,7 @@ char getch()
 {
 	int c;
 	/* LAB 5 TODO BEGIN */
-
+	c = getc();
 	/* LAB 5 TODO END */
 
 	return (char) c;

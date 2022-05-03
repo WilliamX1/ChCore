@@ -164,11 +164,61 @@ char *readline(const char *prompt)
     __chcore_sys_yield();
 		c = getch();
 
-	/* LAB 5 TODO BEGIN */
-	/* Fill buf and handle tabs with do_complement(). */
-
-	/* LAB 5 TODO END */
-	}
+		/* LAB 5 TODO BEGIN */
+		/* Fill buf and handle tabs with do_complement(). */
+		if (c < 0)
+			return NULL;
+		if (c != '\t')
+			complement_time = 0;
+		if (c == '\b') {
+			// Backspace
+			if (i > 0) {
+				i--;
+				__chcore_sys_putc('\b');
+				__chcore_sys_putc(' ');
+				__chcore_sys_putc('\b');
+			};
+			continue;
+		} else if (c == 127) {
+			// Delete
+			if (i > 0) {
+				i--;
+				__chcore_sys_putc('\b');
+				__chcore_sys_putc(' ');
+				__chcore_sys_putc('\b');
+			};
+			continue;
+		} else if (c == '\r' || c == '\n') {
+			// Return
+			__chcore_sys_putc('\n');
+			break;
+		} else if (c == '\t') {
+			if (i > 0) {
+				if (complement_time == 0)
+					j = i;
+				int k = j;
+				while (buf[k] != ' ' && k > 0) k--;
+				if (buf[k] == ' ') k++;
+				char segment[BUFLEN] = {0};
+				strcpy(segment, buf + k);
+				segment[j - k] = '\0';
+				if (do_complement(segment, complement, complement_time) == 0) {
+					strcpy(buf + j, complement);
+					int complement_len = strlen(complement);
+					i = complement_len + j;
+					complement_time++;
+				};
+			};
+			continue;
+		} else {
+			__chcore_sys_putc(c);
+		};
+		buf[i++] = c;
+		if (i == BUFLEN - 1)
+			break;
+		/* LAB 5 TODO END */
+	};
+	buf[i] = '\0';
 
 	return buf;
 }
@@ -193,7 +243,53 @@ void fs_scan(char *path)
 {
 
 	/* LAB 5 TODO BEGIN */
+	char str[256];
+	int start;
+	ipc_msg_t* ipc_msg;
+	int ret;
+	struct fs_request fr;
+	void* vp;
+	struct dirent* p;
+	
+	/* IPC send cap */
+	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
 
+	fr.req = FS_REQ_GET_FS_CAP; // not sure
+	if (strlen(path) == 0) {
+		strcpy((void*) fr.getfscap.pathname, "/");
+	} else if (*path != '/') {
+		fr.getfscap.pathname[0] = '/';
+		strcpy((void*) (fr.getfscap.pathname + 1), path);
+	} else {
+		strcpy((void*) fr.getfscap.pathname, path);
+	};
+
+	int i;
+	start = 0;
+	do {
+		{
+			ipc_set_msg_cap(ipc_msg, 0, tmpfs_scan_pmo_cap);
+			ipc_set_msg_data(ipc_msg, (char*) &fr, 0, sizeof(struct fs_request));
+			ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+			if (ret == -ENOTDIR && *path != '.') {
+				printf("%s\n", path);
+				break;
+			};
+		};
+		vp = 0x20000000;
+		start += ret;
+		for (i = 0; i < ret; i++) {
+			p = vp;
+			strcpy(str, p->d_name);
+			if (str[0] != '.') {
+				printf("%s\n", str);
+			};
+			vp += p->d_reclen;
+		};
+	} while (ret > 0);
+
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+	return;
 	/* LAB 5 TODO END */
 }
 
@@ -226,7 +322,10 @@ int do_cat(char *cmdline)
 int do_echo(char *cmdline)
 {
 	/* LAB 5 TODO BEGIN */
-
+	cmdline += 4;
+	while (*cmdline == ' ')
+		cmdline++;
+	printf("%s", cmdline);
 	/* LAB 5 TODO END */
 	return 0;
 }
@@ -278,7 +377,21 @@ int run_cmd(char *cmdline)
 	int cap = 0;
 	/* Hint: Function chcore_procm_spawn() could be used here. */
 	/* LAB 5 TODO BEGIN */
+	char pathbuf[BUFLEN];
+	int ret;
+	pathbuf[0] = '\0';
+	while (*cmdline == ' ')
+		cmdline++;
+	if (*cmdline == '\0') return -1;
+	else if (*cmdline != '/') strcpy(pathbuf, "/");
+	strcat(pathbuf, cmdline);
 
+	int* mt_cap_out;
+	ret = chcore_procm_spawn(pathbuf, mt_cap_out);
+	if (ret < 0) {
+		printf("[Shell] No such binary\n");
+		return ret;
+	};
 	/* LAB 5 TODO END */
 	return 0;
 }
