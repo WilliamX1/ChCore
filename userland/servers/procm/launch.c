@@ -264,7 +264,7 @@ int launch_process(struct launch_process_args *lp_args)
          *  You do not need to modify code in this scope
          */
         /* LAB 4 TODO BEGIN: create pmo for main_stack_cap */
-
+        main_stack_cap = __chcore_sys_create_pmo(MAIN_THREAD_STACK_SIZE, PMO_ANONYM);
         /* LAB 4 TODO END */
         if (main_stack_cap < 0) {
                 printf("%s: fail to pmo_create (ret: %d)\n", __func__, ret);
@@ -284,7 +284,8 @@ int launch_process(struct launch_process_args *lp_args)
          */
         /* Prepare the stack */
         /* LAB 4 TODO BEGIN: set stack_top and offset */
-
+        stack_top = MAIN_THREAD_STACK_BASE + MAIN_THREAD_STACK_SIZE;
+        offset = MAIN_THREAD_STACK_SIZE - 0x1000;
         /* LAB 4 TODO END */
         construct_init_env(init_env,
                            stack_top,
@@ -307,7 +308,9 @@ int launch_process(struct launch_process_args *lp_args)
          *  Both VM_READ and VM_WRITE permission should be set.
          */
         /* LAB 4 TODO BEGIN: fill pmo_map_requests */
-
+        pmo_map_requests[0].pmo_cap = main_stack_cap;
+        pmo_map_requests[0].addr = MAIN_THREAD_STACK_BASE;
+        pmo_map_requests[0].perm = VM_READ | VM_WRITE;
         /* LAB 4 TODO END */
 
         /* Map each segment in the elf binary */
@@ -337,7 +340,7 @@ int launch_process(struct launch_process_args *lp_args)
          */
         args.cap_group_cap = new_process_cap;
         /* LAB 4 TODO BEGIN: set the stack for main thread */
-
+        args.stack = MAIN_THREAD_STACK_BASE + offset;
         /* LAB 4 TODO END */
         args.pc = pc;
         args.arg = (u64)NULL;

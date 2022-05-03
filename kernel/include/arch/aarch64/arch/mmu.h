@@ -35,6 +35,9 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                             vmr_prop_t flags);
 int unmap_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, size_t len);
 
+// function for lab2:Q9
+void reconfig_kernel_page_table();
+
 #define phys_to_virt(x) ((vaddr_t)((paddr_t)(x) + KBASE))
 #define virt_to_phys(x) ((paddr_t)((vaddr_t)(x)-KBASE))
 

@@ -26,6 +26,71 @@
 #include <object/cap_group.h>
 #include <sched/context.h>
 
+
+// #define ENABLE_MEMORY_PAGE_SWITCH
+
+#ifdef ENABLE_MEMORY_PAGE_SWITCH
+
+#define simulate_page_order 1
+#define simulate_page_num (1 << simulate_page_order)
+
+static paddr_t simulate_pa;
+
+static bool is_mapped[simulate_page_num];
+static vaddr_t origin_va[simulate_page_num];
+static paddr_t origin_pa[simulate_page_num];
+static vmr_prop_t origin_perm[simulate_page_num];
+
+static u64 access_time[simulate_page_num];
+static u64 current_time = 0;
+
+static void init_memory_page(void) {
+        static bool has_init = false;
+        if (!has_init) {
+                has_init = true;
+                simulate_pa = virt_to_phys(get_pages(simulate_page_order));
+        }
+}
+
+static void alloc_page_in_memory(void *pgtbl, vaddr_t va, paddr_t pa, vmr_prop_t perm) {
+        u64 min_time = -1;
+        u64 alloc_index;
+
+        for (u64 i = 0; i < simulate_page_num; ++i) {
+                if (is_mapped[i]) {
+                        if (min_time > access_time[i]) {
+                                min_time = access_time[i];
+                                alloc_index = i;
+                        }
+                }
+                else {
+                        alloc_index = i;
+                        break;
+                }
+        }
+
+        if (is_mapped[alloc_index]) {
+                // swap out
+                unmap_range_in_pgtbl(pgtbl, origin_va[alloc_index], PAGE_SIZE);
+                memcpy(phys_to_virt(origin_pa[alloc_index]), phys_to_virt(simulate_pa + alloc_index * PAGE_SIZE), PAGE_SIZE);
+                map_range_in_pgtbl(pgtbl, origin_va[alloc_index], origin_pa[alloc_index], PAGE_SIZE, origin_perm[alloc_index]);
+        }
+        
+        // swap in
+        is_mapped[alloc_index] = true;
+        origin_pa[alloc_index] = pa;
+        origin_va[alloc_index] = va;
+        origin_perm[alloc_index] = perm;
+
+        access_time[alloc_index] = current_time++;
+
+        memcpy(phys_to_virt(simulate_pa + alloc_index * PAGE_SIZE), phys_to_virt(pa), PAGE_SIZE);
+        map_range_in_pgtbl(pgtbl, va, simulate_pa + alloc_index * PAGE_SIZE, PAGE_SIZE, perm);
+}
+
+#endif
+
+
 int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
 {
         struct vmregion *vmr;
@@ -50,6 +115,10 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                 return -ENOMAPPING;
         }
 
+#ifdef ENABLE_MEMORY_PAGE_SWITCH
+        init_memory_page();
+#endif
+
         pmo = vmr->pmo;
         switch (pmo->type) {
         case PMO_ANONYM:
@@ -68,11 +137,23 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                 fault_addr = ROUND_DOWN(fault_addr, PAGE_SIZE);
                 /* LAB 3 TODO BEGIN */
 
+                pa = get_page_from_pmo(pmo, index);
+
                 /* LAB 3 TODO END */
                 if (pa == 0) {
                         /* Not committed before. Then, allocate the physical
                          * page. */
                         /* LAB 3 TODO BEGIN */
+
+                        pa = virt_to_phys(get_pages(0));
+                        memset(phys_to_virt(pa), 0, PAGE_SIZE);
+                        commit_page_to_pmo(pmo, index, pa);
+
+#ifdef ENABLE_MEMORY_PAGE_SWITCH
+                        alloc_page_in_memory(vmspace->pgtbl, fault_addr, pa, perm);
+#else
+                        map_range_in_pgtbl(vmspace->pgtbl, fault_addr, pa, PAGE_SIZE, perm);
+#endif
 
                         /* LAB 3 TODO END */
 #ifdef CHCORE_LAB3_TEST
@@ -101,6 +182,12 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                          * Repeated mapping operations are harmless.
                          */
                         /* LAB 3 TODO BEGIN */
+                        
+#ifdef ENABLE_MEMORY_PAGE_SWITCH
+                        alloc_page_in_memory(vmspace->pgtbl, fault_addr, pa, perm);
+#else
+                        map_range_in_pgtbl(vmspace->pgtbl, fault_addr, pa, PAGE_SIZE, perm);
+#endif
 
                         /* LAB 3 TODO END */
 #ifdef CHCORE_LAB3_TEST

@@ -107,7 +107,7 @@ static int create_connection(struct thread *source, struct thread *target,
         // Create the server thread's stack
         /* Lab4: set server_stack_base */
         /* LAB 4 TODO BEGIN */
-
+        server_stack_base = vm_config->stack_base_addr + conn_idx * vm_config->stack_size;
         /* LAB 4 TODO END */
         stack_size = vm_config->stack_size;
         stack_pmo = kmalloc(sizeof(struct pmobject));
@@ -127,7 +127,8 @@ static int create_connection(struct thread *source, struct thread *target,
         // Create and map the shared buffer for client and server
         /* LAB 4: set server_buf_base and client_buf_base */
         /* LAB 4 TODO BEGIN */
-
+        server_buf_base = vm_config->buf_base_addr + conn_idx * vm_config->buf_size;
+        client_buf_base = client_vm_config->buf_base_addr;
         /* LAB 4 TODO END */
         buf_size = MIN(vm_config->buf_size, client_vm_config->buf_size);
         client_vm_config->buf_size = buf_size;
@@ -141,7 +142,8 @@ static int create_connection(struct thread *source, struct thread *target,
 
         /* LAB 4: map shared ipc buf to vmspace of server and client */
         /* LAB 4 TODO BEGIN */
-
+        vmspace_map_range(current_thread->vmspace, client_buf_base, buf_size, VMR_READ | VMR_WRITE, buf_pmo);
+        vmspace_map_range(target->vmspace, server_buf_base, buf_size, VMR_READ | VMR_WRITE, buf_pmo);
         /* LAB 4 TODO END */
 
         conn->buf.client_user_addr = client_buf_base;
@@ -196,7 +198,7 @@ static u64 thread_migrate_to_server(struct ipc_connection *conn, u64 arg)
          * of the ipc_connection stores the stack of the server thread?
          * */
         /* LAB 4 TODO BEGIN: use arch_set_thread_stack*/
-
+        arch_set_thread_stack(target, conn->server_stack_top);
         /* LAB 4 TODO END */
 
         /**
@@ -206,7 +208,7 @@ static u64 thread_migrate_to_server(struct ipc_connection *conn, u64 arg)
          * to the server?
          * */
         /* LAB 4 TODO BEGIN: use arch_set_thread_next_ip */
-
+        arch_set_thread_next_ip(target, callback);
         /* LAB 4 TODO END */
 
         /**
@@ -216,7 +218,8 @@ static u64 thread_migrate_to_server(struct ipc_connection *conn, u64 arg)
          */
 
         /* LAB 4 TODO BEGIN: use arch_set_thread_arg0/1 */
-
+        arch_set_thread_arg0(target, arg);
+        arch_set_thread_arg1(target, current_thread->cap_group->pid);
         /* LAB 4 TODO END */
 
         /**
@@ -254,7 +257,7 @@ static int thread_migrate_to_client(struct ipc_connection *conn, u64 ret_value)
          * The return value returned by server thread;
          */
         /* LAB 4 TODO BEGIN: use arch_set_thread_return */
-
+        arch_set_thread_return(source, ret_value);
         /* LAB 4 TODO END */
 
         /**
@@ -519,7 +522,8 @@ void sys_ipc_return(u64 ret, u64 cap_num)
 
         /* Lab4: update the thread's state and sc */
         /* LAB 4 TODO BEGIN */
-
+        conn->source->thread_ctx->state = TS_RUNNING;
+        conn->source->thread_ctx->sc = current_thread->thread_ctx->sc;
         /* LAB 4 TODO END */
 
         thread_migrate_to_client(conn, ret);
@@ -554,7 +558,11 @@ u64 sys_ipc_call(u32 conn_cap, struct ipc_msg *ipc_msg, u64 cap_num)
          * capbilities in server thread in the ipc_msg if cap_num > 0
          */
         /* LAB 4 TODO BEGIN: use ipc_send_cap */
-
+        if (cap_num > 0) {
+                r = ipc_send_cap(conn);
+                if (r < 0)
+                        goto out_obj_put;
+        }
         /* LAB 4 TODO END */
 
         if (ipc_msg == 0)
@@ -566,7 +574,7 @@ u64 sys_ipc_call(u32 conn_cap, struct ipc_msg *ipc_msg, u64 cap_num)
          * Then what value should the arg be?
          * */
         /* LAB 4 TODO BEGIN: set arg */
-
+        arg = conn->buf.server_user_addr;
         /* LAB 4 TODO END */
 
         thread_migrate_to_server(conn, arg);
