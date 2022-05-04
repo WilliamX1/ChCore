@@ -98,7 +98,6 @@ int fs_wrapper_open(u64 client_badge, struct ipc_msg *ipc_msg, struct fs_request
 		list_append(&vnode->node, &fs_vnode_list);
 		assign_entry(server_entrys[entry_id], flags, entry_off, (void *)strdup(path), vnode);
 	}
-
 	/* After server handling the open request, mapping new_fd to fid */
 	fs_wrapper_set_server_entry(client_badge, new_fd, entry_id);
 

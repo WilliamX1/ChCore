@@ -243,52 +243,56 @@ void fs_scan(char *path)
 {
 
 	/* LAB 5 TODO BEGIN */
-	char str[256];
-	int start;
+	char str[4096];
+	int start = 0;
 	ipc_msg_t* ipc_msg;
 	int ret;
-	struct fs_request fr;
-	void* vp;
+	struct fs_request* fr_ptr;
+	void *vp;
 	struct dirent* p;
-	
+
+
+	static int fd = 0;
+	fd++;
 	/* IPC send cap */
 	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
-
-	fr.req = FS_REQ_GET_FS_CAP; // not sure
-	if (strlen(path) == 0) {
-		strcpy((void*) fr.getfscap.pathname, "/");
-	} else if (*path != '/') {
-		fr.getfscap.pathname[0] = '/';
-		strcpy((void*) (fr.getfscap.pathname + 1), path);
+	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
+	fr_ptr->req = FS_REQ_OPEN;
+	fr_ptr->open.new_fd = fd;
+	
+	if (strlen(path) == 0) 
+		strcpy((void *) fr_ptr->open.pathname, "/");
+	else if (*path != '/') {
+		fr_ptr->open.pathname[0] = '/';
+		strcpy((void *) (fr_ptr->open.pathname + 1), path);
 	} else {
-		strcpy((void*) fr.getfscap.pathname, path);
+		strcpy((void *) fr_ptr->open.pathname, path);
+	};
+	
+	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+	if (ret == -ENOTDIR && *path != '.') {
+		printf("%s\n", path);
+	} else {
+		/* reference to demo_getdents(int fd) */
+		char name[BUFLEN];
+		char scan_buf[BUFLEN];
+		int offset;
+		struct dirent* p;
+
+		int ret = getdents(fd, scan_buf, BUFLEN);
+
+		for (offset = 0; offset < ret; offset += p->d_reclen) {
+			p = (struct dirent *)(scan_buf + offset);
+			get_dent_name(p, name);
+			if (strcmp(name, ".")) {
+				printf("%s", name);
+				if (offset + p->d_reclen < ret) 
+					printf(" ");
+			};
+		};
 	};
 
-	int i;
-	start = 0;
-	do {
-		{
-			ipc_set_msg_cap(ipc_msg, 0, tmpfs_scan_pmo_cap);
-			ipc_set_msg_data(ipc_msg, (char*) &fr, 0, sizeof(struct fs_request));
-			ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
-			if (ret == -ENOTDIR && *path != '.') {
-				printf("%s\n", path);
-				break;
-			};
-		};
-		vp = 0x20000000;
-		start += ret;
-		for (i = 0; i < ret; i++) {
-			p = vp;
-			strcpy(str, p->d_name);
-			if (str[0] != '.') {
-				printf("%s\n", str);
-			};
-			vp += p->d_reclen;
-		};
-	} while (ret > 0);
-
-	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
 	return;
 	/* LAB 5 TODO END */
 }
