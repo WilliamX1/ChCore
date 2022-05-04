@@ -126,18 +126,59 @@ int alloc_fd()
 
 int do_complement(char *buf, char *complement, int complement_time)
 {
-	int ret = 0, j = 0;
-	struct dirent *p;
-	char name[BUFLEN];
-	char scan_buf[BUFLEN];
-	int r = -1;
-	int offset;
-
 	/* LAB 5 TODO BEGIN */
 
+	char path[BUFLEN] = {0};
+	strcpy(path, "/");
+
+	ipc_msg_t* ipc_msg;
+	int ret;
+	struct fs_request* fr_ptr;
+
+	int fd = alloc_fd();
+	/* allocate user fd to file pid */
+	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
+	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
+	fr_ptr->req = FS_REQ_OPEN;
+	fr_ptr->open.new_fd = fd;
+	
+	if (strlen(path) == 0) 
+		strcpy((void *) fr_ptr->open.pathname, "/");
+	else if (*path != '/') {
+		fr_ptr->open.pathname[0] = '/';
+		strcpy((void *) (fr_ptr->open.pathname + 1), path);
+	} else {
+		strcpy((void *) fr_ptr->open.pathname, path);
+	};
+	
+	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+
+	/* scan root dir */
+
+	if (ret == -ENOTDIR && *path != '.') {
+		printf("%s\n", path);
+	} else {
+		/* reference to demo_getdents(int fd) */
+		char name[BUFLEN];
+		char scan_buf[BUFLEN];
+		int offset;
+		struct dirent* p;
+
+		int ret = getdents(fd, scan_buf, BUFLEN);
+
+		for (offset = 0; offset < ret; offset += p->d_reclen) {
+			p = (struct dirent *)(scan_buf + offset);
+			get_dent_name(p, name);
+			if (strcmp(name, ".") && complement_time-- == 0) {
+				strcpy(complement, name);
+				break;
+			};
+		};
+	};
 	/* LAB 5 TODO END */
 
-	return r;
+	return 0;
 }
 
 
@@ -150,7 +191,7 @@ char *readline(const char *prompt)
 {
 	static char buf[BUFLEN];
 
-	int i = 0, j = 0;
+	int i = 0;
 	signed char c = 0;
 	int ret = 0;
 	char complement[BUFLEN];
@@ -193,21 +234,12 @@ char *readline(const char *prompt)
 			__chcore_sys_putc('\n');
 			break;
 		} else if (c == '\t') {
-			if (i > 0) {
-				if (complement_time == 0)
-					j = i;
-				int k = j;
-				while (buf[k] != ' ' && k > 0) k--;
-				if (buf[k] == ' ') k++;
-				char segment[BUFLEN] = {0};
-				strcpy(segment, buf + k);
-				segment[j - k] = '\0';
-				if (do_complement(segment, complement, complement_time) == 0) {
-					strcpy(buf + j, complement);
-					int complement_len = strlen(complement);
-					i = complement_len + j;
-					complement_time++;
-				};
+			char buf[BUFLEN];
+			char complement[BUFLEN];
+			if (do_complement(buf, complement, complement_time) == 0) {
+				complement_time++;
+				strcpy(buf, complement);
+				printf("%s", buf);
 			};
 			continue;
 		} else {
