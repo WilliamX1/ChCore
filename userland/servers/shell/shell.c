@@ -233,9 +233,47 @@ void print_file_content(char* path)
 {
 
 	/* LAB 5 TODO BEGIN */
+	ipc_msg_t* ipc_msg;
+	int ret;
+	struct fs_request* fr_ptr;
+	char buf[BUFLEN];
 
+	int fd = alloc_fd();
+	/* allocate user fd to file pid */
+	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
+	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
+	fr_ptr->req = FS_REQ_OPEN;
+	fr_ptr->open.new_fd = fd;
+	
+	if (strlen(path) == 0) 
+		strcpy((void *) fr_ptr->open.pathname, "/");
+	else if (*path != '/') {
+		fr_ptr->open.pathname[0] = '/';
+		strcpy((void *) (fr_ptr->open.pathname + 1), path);
+	} else {
+		strcpy((void *) fr_ptr->open.pathname, path);
+	};
+	
+	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+
+	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
+	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
+	fr_ptr->req = FS_REQ_READ;
+	fr_ptr->read.fd = fd;
+	fr_ptr->read.count = BUFLEN;
+
+	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+
+	if (ret < 0)
+		goto error;
+	memcpy(buf, ipc_get_msg_data(ipc_msg), ret);
+	printf("%s", buf);
 	/* LAB 5 TODO END */
-
+error:
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+	return ret;
 }
 
 
@@ -248,7 +286,7 @@ void fs_scan(char *path)
 	struct fs_request* fr_ptr;
 
 	int fd = alloc_fd();
-	/* IPC send cap */
+	/* allocate user fd to file pid */
 	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
 	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
 	fr_ptr->req = FS_REQ_OPEN;
