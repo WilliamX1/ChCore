@@ -243,17 +243,11 @@ void fs_scan(char *path)
 {
 
 	/* LAB 5 TODO BEGIN */
-	char str[4096];
-	int start = 0;
 	ipc_msg_t* ipc_msg;
 	int ret;
 	struct fs_request* fr_ptr;
-	void *vp;
-	struct dirent* p;
 
-
-	static int fd = 0;
-	fd++;
+	int fd = alloc_fd();
 	/* IPC send cap */
 	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
 	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
