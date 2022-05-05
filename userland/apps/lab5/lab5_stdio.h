@@ -25,7 +25,11 @@ extern struct ipc_struct *tmpfs_ipc_struct;
 
 typedef struct FILE {
 	/* LAB 5 TODO BEGIN */
-
+	int fd;
+	unsigned int mode;
+	char filename[FS_REQ_PATH_BUF_LEN];
+	int offset;
+	int refcnt;
 	/* LAB 5 TODO END */
 } FILE;
 

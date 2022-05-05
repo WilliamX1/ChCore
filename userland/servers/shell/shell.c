@@ -304,8 +304,8 @@ void print_file_content(char* path)
 	printf("%s", buf);
 	/* LAB 5 TODO END */
 error:
-	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
-	return ret;
+	// ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+	return;
 }
 
 
