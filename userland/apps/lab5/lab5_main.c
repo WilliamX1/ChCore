@@ -83,7 +83,6 @@ int lab5_stdio_file_printf_scanf () {
     pFile = fopen("/myfile2.txt", "r");
     fscanf(pFile, "%s %s %d", rbuf, rbuf2, &outdata);
     free(ptr);
-
     return strcmp(rbuf, "fprintf") != 0 || strcmp(rbuf2, __func__) != 0 || outdata != data;
 }
 

@@ -205,7 +205,7 @@ int fs_wrapper_write(struct ipc_msg *ipc_msg, struct fs_request *fr)
 
 	ret = 0;
 	fd = fr->write.fd;
-	buf = (void *)fr + sizeof(struct fs_request);
+	buf = (void *)fr + sizeof(struct fs_request) + 8; // original bug without +8
 
 	size = (size_t)fr->write.count;
 	offset = (unsigned long long)server_entrys[fd]->offset;
