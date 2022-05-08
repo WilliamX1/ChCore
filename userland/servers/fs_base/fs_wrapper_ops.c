@@ -51,7 +51,6 @@ int default_server_operation(struct ipc_msg *ipc_msg, struct fs_request *fr)
 
 int fs_wrapper_open(u64 client_badge, struct ipc_msg *ipc_msg, struct fs_request *fr)
 {
-
 	int new_fd;
 	char *path;
 	int flags;
@@ -186,7 +185,6 @@ int fs_wrapper_read(struct ipc_msg *ipc_msg, struct fs_request *fr)
 
 	/* Update server_entry and vnode metadata */
 	server_entrys[fd]->offset += ret;
-
 out:
 	return ret;
 }
@@ -205,7 +203,7 @@ int fs_wrapper_write(struct ipc_msg *ipc_msg, struct fs_request *fr)
 
 	ret = 0;
 	fd = fr->write.fd;
-	buf = (void *)fr + sizeof(struct fs_request);
+	buf = (void *)fr + sizeof(struct fs_request); // fixed + 8 bug; original bug without +8
 
 	size = (size_t)fr->write.count;
 	offset = (unsigned long long)server_entrys[fd]->offset;
@@ -234,7 +232,6 @@ int fs_wrapper_write(struct ipc_msg *ipc_msg, struct fs_request *fr)
 	if (server_entrys[fd]->offset > server_entrys[fd]->vnode->size) {
 		server_entrys[fd]->vnode->size = server_entrys[fd]->offset;
 	}
-
 out:
 	return ret;
 }

@@ -64,7 +64,6 @@ int lab5_stdio_file_read_write () {
         cnt = fread(rbuf, sizeof(char), sizeof(rbuf), pFile);
     } while(cnt > 0);
     fclose(pFile);
-
     return memcmp(rbuf, (char*)wbuf + sizeof(wbuf) - sizeof(rbuf), sizeof(rbuf));
 }
 
@@ -83,7 +82,6 @@ int lab5_stdio_file_printf_scanf () {
     pFile = fopen("/myfile2.txt", "r");
     fscanf(pFile, "%s %s %d", rbuf, rbuf2, &outdata);
     free(ptr);
-
     return strcmp(rbuf, "fprintf") != 0 || strcmp(rbuf2, __func__) != 0 || outdata != data;
 }
 

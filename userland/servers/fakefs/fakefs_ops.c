@@ -63,6 +63,7 @@ struct fakefs_file_node * fakefs_lookup_by_path(const char* path) {
 
 int fakefs_creat(struct ipc_msg *ipc_msg, struct fs_request *fr)
 {
+	// printf("fakefs_ops get create request: path: %s\n", fr->creat.pathname);
 	char* path = fr->creat.pathname;
 	check_path(path);
 
@@ -82,6 +83,7 @@ int fakefs_creat(struct ipc_msg *ipc_msg, struct fs_request *fr)
 
 int fakefs_open(char *path, int flags, int mode, unsigned long *vnode_id, size_t *vnode_size, int *vnode_type, void **vnode_private)
 {
+	// printf("fakefs_ops get open request: path: %s\n", path);
 	check_path(path);
 
 	struct fakefs_file_node *file_node;
@@ -103,6 +105,7 @@ int fakefs_open(char *path, int flags, int mode, unsigned long *vnode_id, size_t
 
 int fakefs_close(void *operator, bool is_dir)
 {
+	// printf("fakefs_ops get close request..\n");
 	int ret = 0;
 	struct fakefs_file_node *file_node = (struct fakefs_file_node *)operator;
 	if(file_node) {
@@ -125,6 +128,7 @@ int fakefs_symlinkat(struct ipc_msg *ipc_msg, struct fs_request *fr)
 
 int fakefs_read(void *operator, unsigned long offset, size_t size, char *buf)
 {
+	// printf("fakefs_ops get read request..\n");
 	struct fakefs_file_node * file_node = (struct fakefs_file_node *)operator;
 	BUG_ON(!file_node);
 
@@ -133,12 +137,14 @@ int fakefs_read(void *operator, unsigned long offset, size_t size, char *buf)
 		return 0;
 
 	size = MIN(file_node->size - offset, size);
-	memcpy(buf, file_node->file + offset, size);	
+	memcpy(buf, file_node->file + offset, size);
+	// printf("\tbuf: %s\n", buf);	
 	return size;	
 }
 
 int fakefs_write(void *operator, unsigned long offset, size_t size, const char *buf)
 {
+	// printf("fakefs_ops get write request..\n");
 	struct fakefs_file_node * file_node = (struct fakefs_file_node *)operator;
 	BUG_ON(!file_node);
 	int size_after_write = offset + size;
@@ -152,6 +158,7 @@ int fakefs_write(void *operator, unsigned long offset, size_t size, const char *
 	}
 	memcpy(file_node->file + offset, buf, size);	
 	file_node->size = size_after_write;
+	// printf("\tbuf: %s\n", buf);
 	
 	return size;
 }
@@ -165,7 +172,7 @@ void del_file_node(struct fakefs_file_node *del_node) {
 
 int fakefs_rmdir(const char *path, int flags)
 {
-
+	// printf("fakefs_ops get rmdir request, path: %s\n", path);
 	struct list_head node_to_del;
 	init_list_head(&node_to_del);
 	
@@ -198,6 +205,7 @@ int fakefs_rmdir(const char *path, int flags)
 
 int fakefs_mkdir(const char *path, mode_t mode)
 {
+	// printf("fakefs_ops get mkdir request, path: %s\n", path);
 	int path_len = strlen(path);
 	BUG_ON(path[path_len - 1] == '/');
 	check_path(path);
@@ -274,6 +282,8 @@ int fakefs_getdents(struct ipc_msg *ipc_msg, struct fs_request *fr)
 		dir_path = dirpathbuf;
 		dir_path_len += 1;
 	}
+
+	// printf("fakefs_ops get gendents request, path: %s\n", dirpathbuf);
 
 	s64 cnt = 0;
 	s64 start = server_entrys[fd]->offset;
