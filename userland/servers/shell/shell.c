@@ -120,8 +120,8 @@ void demo_getdents(int fd)
 
 int alloc_fd() 
 {
-	static int cnt = 0;
-	return ++cnt;
+	static int global_fd = 0;
+	return ++global_fd;
 }
 
 int do_complement(char *buf, char *complement, int complement_time)
@@ -135,7 +135,7 @@ int do_complement(char *buf, char *complement, int complement_time)
 	int ret;
 	struct fs_request* fr_ptr;
 
-	int fd = alloc_fd();
+	const int fd = 293; // This should be a fixed fd
 	/* allocate user fd to file pid */
 	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
 	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
@@ -154,10 +154,10 @@ int do_complement(char *buf, char *complement, int complement_time)
 	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
 	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
 
-	/* scan root dir */
+	// /* scan root dir */
 
 	if (ret == -ENOTDIR && *path != '.') {
-		printf("%s\n", path);
+		printf("wrong path: %s\n", path);
 	} else {
 		/* reference to demo_getdents(int fd) */
 		char name[BUFLEN];
@@ -176,6 +176,13 @@ int do_complement(char *buf, char *complement, int complement_time)
 			};
 		};
 	};
+
+	/* Close File */
+	fr_ptr->req = FS_REQ_CLOSE;
+	fr_ptr->close.fd = fd;
+	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
+
 	/* LAB 5 TODO END */
 
 	return 0;
@@ -194,7 +201,6 @@ char *readline(const char *prompt)
 	int i = 0;
 	signed char c = 0;
 	int ret = 0;
-	char complement[BUFLEN];
 	int complement_time = 0;
 
 	if (prompt != NULL) {
@@ -234,12 +240,11 @@ char *readline(const char *prompt)
 			__chcore_sys_putc('\n');
 			break;
 		} else if (c == '\t') {
-			char buf[BUFLEN];
-			char complement[BUFLEN];
-			if (do_complement(buf, complement, complement_time) == 0) {
+			char complement_buf[BUFLEN] = {0};
+			char complement[BUFLEN] = {0};
+			if (do_complement(complement_buf, complement, complement_time) == 0) {
 				complement_time++;
-				strcpy(buf, complement);
-				printf("%s", buf);
+				printf("%s", complement);
 			};
 			continue;
 		} else {
@@ -285,23 +290,19 @@ void print_file_content(char* path)
 	} else {
 		strcpy((void *) fr_ptr->open.pathname, path);
 	};
-	
 	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
 	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
 
-	ipc_msg = ipc_create_msg(fs_ipc_struct_for_shell, sizeof(struct fs_request), 1);
-	fr_ptr = (struct fs_request *) ipc_get_msg_data(ipc_msg);
 	fr_ptr->req = FS_REQ_READ;
 	fr_ptr->read.fd = fd;
 	fr_ptr->read.count = BUFLEN;
-
 	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
-	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
-
 	if (ret < 0)
 		goto error;
 	memcpy(buf, ipc_get_msg_data(ipc_msg), ret);
 	printf("%s", buf);
+
+	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
 	/* LAB 5 TODO END */
 error:
 	// ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);

@@ -100,6 +100,8 @@ int get_file_size_from_fsm(char* path) {
         return ret;
 }
 
+extern int alloc_fd();
+
 /* Write buf into the file at `path`. */
 int fsm_write_file(const char* path, char* buf, unsigned long size) {
         if (!fsm_ipc_struct) {
@@ -108,7 +110,50 @@ int fsm_write_file(const char* path, char* buf, unsigned long size) {
         int ret = 0;
 
         /* LAB 5 TODO BEGIN */
+        struct ipc_msg* ipc_msg_cap = ipc_create_msg(
+                fsm_ipc_struct, sizeof(struct fs_request), 0);
+        chcore_assert(ipc_msg_cap);
+        struct fs_request * fr_cap = 
+                (struct fs_request *) ipc_get_msg_data(ipc_msg_cap);
+        
+        /* Get Cap */
+        fr_cap->req = FS_REQ_GET_FS_CAP;
+        strcpy(fr_cap->getfscap.pathname, path);
+        ret = ipc_call(fsm_ipc_struct, ipc_msg_cap);
+        int cap = ipc_get_msg_cap(ipc_msg_cap, 0);
 
+        /* Direct Sending Request*/
+
+        struct fs_cap_info_node * fs_cap_info = get_fs_cap_info(cap);
+        struct ipc_msg* ipc_msg = ipc_create_msg(
+                fs_cap_info->fs_ipc_struct, sizeof(struct fs_request) + size + 1, 0);
+        struct fs_request * fr = 
+                (struct fs_request *) ipc_get_msg_data(ipc_msg);
+
+        /* Open File */
+        int fd = alloc_fd();
+        fr->req = FS_REQ_OPEN;
+        fr->open.new_fd = fd;
+        strcpy(fr->open.pathname, fr_cap->getfscap.pathname);
+        // printf("Open pathname: %s\n", fr->open.pathname);
+
+        ret = ipc_call(fs_cap_info->fs_ipc_struct, ipc_msg);
+
+        /* Write File */
+        fr->req = FS_REQ_WRITE;
+        fr->write.count = size;
+        fr->write.fd = fd;
+        memcpy((void *) fr + sizeof(struct fs_request), buf, size);
+
+        ret = ipc_call(fs_cap_info->fs_ipc_struct, ipc_msg);
+
+        /* Close File */
+        fr->req = FS_REQ_CLOSE;
+        fr->close.fd = fd;
+        ret = ipc_call(fs_cap_info->fs_ipc_struct, ipc_msg);
+        
+        ipc_destroy_msg(fsm_ipc_struct, ipc_msg_cap);
+        ipc_destroy_msg(fs_cap_info->fs_ipc_struct, ipc_msg);
         /* LAB 5 TODO END */
 
         return ret;
@@ -123,7 +168,52 @@ int fsm_read_file(const char* path, char* buf, unsigned long size) {
         int ret = 0;
 
         /* LAB 5 TODO BEGIN */
+        struct ipc_msg* ipc_msg_cap = ipc_create_msg(
+                fsm_ipc_struct, sizeof(struct fs_request), 0);
+        chcore_assert(ipc_msg_cap);
+        struct fs_request * fr_cap = 
+                (struct fs_request *) ipc_get_msg_data(ipc_msg_cap);
+        
+        /* Get Cap */
+        fr_cap->req = FS_REQ_GET_FS_CAP;
+        strcpy(fr_cap->getfscap.pathname, path);
+        ret = ipc_call(fsm_ipc_struct, ipc_msg_cap);
+        int cap = ipc_get_msg_cap(ipc_msg_cap, 0);
 
+        /* Direct Sending Request*/
+
+        struct fs_cap_info_node * fs_cap_info = get_fs_cap_info(cap);
+        struct ipc_msg* ipc_msg = ipc_create_msg(
+                fs_cap_info->fs_ipc_struct, sizeof(struct fs_request) + size + 1, 0); 
+        struct fs_request * fr = 
+                (struct fs_request *) ipc_get_msg_data (ipc_msg);
+
+        /* Open File */
+        int fd = alloc_fd();
+        fr->req = FS_REQ_OPEN;
+        fr->open.new_fd = fd;
+        strcpy(fr->open.pathname, fr_cap->getfscap.pathname);
+
+        ret = ipc_call(fs_cap_info->fs_ipc_struct, ipc_msg);
+
+        /* Read File */
+        fr->req = FS_REQ_READ;
+        fr->read.count = size;
+        fr->read.fd = fd;
+
+        ret = ipc_call(fs_cap_info->fs_ipc_struct, ipc_msg);
+
+        /* Copy to buf */
+        memcpy(buf, ipc_get_msg_data(ipc_msg), ret);
+
+        /* Close File */
+        fr->req = FS_REQ_CLOSE;
+        fr->close.fd = fd;
+
+        ret = ipc_call(fs_cap_info->fs_ipc_struct, ipc_msg);
+
+        ipc_destroy_msg(fsm_ipc_struct, ipc_msg_cap);
+        ipc_destroy_msg(fs_cap_info->fs_ipc_struct, ipc_msg);
         /* LAB 5 TODO END */
 
         return ret;

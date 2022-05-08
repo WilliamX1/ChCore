@@ -170,9 +170,9 @@ void fsm_server_dispatch(struct ipc_msg *ipc_msg, u64 client_badge)
 			fr_forward->write.fd = fr->write.fd;
 			fr_forward->write.count = fr->write.count;
 
-			fr_forward = ipc_get_msg_data(ipc_msg_forward);
+			// fr_forward = ipc_get_msg_data(ipc_msg_forward);
 
-			memcpy(fr_forward, fr, sizeof(struct fs_request));
+			// memcpy(fr_forward, fr, sizeof(struct fs_request));
 			
 			ipc_msg_forward->cap_slot_number = 1;
 			ipc_set_msg_cap(ipc_msg_forward, 0, mpinfo->fs_cap);
@@ -266,6 +266,7 @@ void fsm_server_dispatch(struct ipc_msg *ipc_msg, u64 client_badge)
 			ipc_destroy_msg(mpinfo->_fs_ipc_struct, ipc_msg_forward);
 			break;
 		case FS_REQ_CREAT:
+			// printf("FS_REQ_CREATE: pathname: %s\n", fr->creat.pathname);
 			mpinfo = get_mount_point(fr->creat.pathname, strlen(fr->creat.pathname));
 
 			ipc_msg_forward = ipc_create_msg(mpinfo->_fs_ipc_struct, sizeof(struct fs_request), 0);
