@@ -291,6 +291,8 @@ void print_file_content(char* path)
 		strcpy((void *) fr_ptr->open.pathname, path);
 	};
 	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+	if (ret < 0)
+		goto error;
 	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
 
 	fr_ptr->req = FS_REQ_READ;
@@ -302,6 +304,12 @@ void print_file_content(char* path)
 	memcpy(buf, ipc_get_msg_data(ipc_msg), ret);
 	printf("%s", buf);
 
+	fr_ptr->req = FS_REQ_CLOSE;
+	fr_ptr->close.fd = fd;
+	ret = ipc_call(fs_ipc_struct_for_shell, ipc_msg);
+	if (ret < 0)
+		goto error;
+	
 	ipc_destroy_msg(fs_ipc_struct_for_shell, ipc_msg);
 	/* LAB 5 TODO END */
 error:
@@ -446,17 +454,16 @@ int run_cmd(char *cmdline)
 	int cap = 0;
 	/* Hint: Function chcore_procm_spawn() could be used here. */
 	/* LAB 5 TODO BEGIN */
-	char pathbuf[BUFLEN];
+	char pathbuf[BUFLEN] = {0};
 	int ret;
-	pathbuf[0] = '\0';
+	// pathbuf[0] = '\0';
 	while (*cmdline == ' ')
 		cmdline++;
 	if (*cmdline == '\0') return -1;
 	else if (*cmdline != '/') strcpy(pathbuf, "/");
 	strcat(pathbuf, cmdline);
 
-	int* mt_cap_out;
-	ret = chcore_procm_spawn(pathbuf, mt_cap_out);
+	ret = chcore_procm_spawn(pathbuf, &cap);
 	if (ret < 0) {
 		printf("[Shell] No such binary\n");
 		return ret;
